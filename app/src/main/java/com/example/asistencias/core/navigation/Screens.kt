@@ -13,3 +13,10 @@ object AssistanceTypes
 
 @Serializable
 object NewAssistanceForm
+
+@Serializable
+object JornadasScreen
+
+@Serializable
+object NuevaJornadaForm
+
