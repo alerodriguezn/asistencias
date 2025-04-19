@@ -13,12 +13,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.asistencias.data.Jornada
 import com.example.asistencias.ui.components.JornadaCard
 import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
-fun JornadasScreen(navigateToNuevaJornada: () -> Unit) {
+fun JornadasScreen(
+    navController: NavController,
+    navigateToNuevaJornada: () -> Unit
+) {
     val db = FirebaseFirestore.getInstance()
     val TAG = "JornadasScreen"
     val jornadas = remember { mutableStateListOf<Jornada>() }
@@ -102,7 +106,10 @@ fun JornadasScreen(navigateToNuevaJornada: () -> Unit) {
             }
 
             items(jornadas) { jornada ->
-                JornadaCard(jornada)
+                JornadaCard(jornada = jornada, onEditClick = {
+                    navController.navigate("EditarJornadaForm/${jornada.id}")
+                }
+                )
             }
         }
     }
