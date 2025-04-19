@@ -26,8 +26,10 @@ fun JornadasScreen(
     val db = FirebaseFirestore.getInstance()
     val TAG = "JornadasScreen"
     val jornadas = remember { mutableStateListOf<Jornada>() }
+    var showDialog by remember { mutableStateOf(false) }
+    var jornadaSeleccionada by remember { mutableStateOf<Jornada?>(null) }
 
-    // Leer los datos desde Firebase
+    // Escucha los datos en tiempo real
     LaunchedEffect(Unit) {
         db.collection("jornadas")
             .addSnapshotListener { snapshot, e ->
@@ -69,7 +71,6 @@ fun JornadasScreen(
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF6A5ACD),
                         contentColor = Color.White
-
                     )
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
@@ -79,36 +80,82 @@ fun JornadasScreen(
             }
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        placeholder = { Text("Buscar Jornada") },
-                        modifier = Modifier.weight(1f),
-                        readOnly = true,
-                        enabled = false
+        Column(modifier = Modifier.padding(padding)) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = "",
+                            onValueChange = {},
+                            placeholder = { Text("Buscar Jornada") },
+                            modifier = Modifier.weight(1f),
+                            readOnly = true,
+                            enabled = false
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+
+                items(jornadas) { jornada ->
+                    JornadaCard(
+                        jornada = jornada,
+                        onEditClick = {
+                            navController.navigate("EditarJornadaForm/${jornada.id}")
+                        },
+                        onDeleteClick = {
+                            jornadaSeleccionada = jornada
+                            showDialog = true
+                        }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
 
-            items(jornadas) { jornada ->
-                JornadaCard(jornada = jornada, onEditClick = {
-                    navController.navigate("EditarJornadaForm/${jornada.id}")
-                }
+            // Diálogo de confirmación
+            if (showDialog && jornadaSeleccionada != null) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text("Confirmación") },
+                    text = {
+                        Column {
+                            Text("¿Estás seguro que deseas eliminar \"${jornadaSeleccionada?.nombre}\"?")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("¡CUIDADO!", color = Color.Red)
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                jornadaSeleccionada?.let { jornada ->
+                                    db.collection("jornadas").document(jornada.id)
+                                        .delete()
+                                        .addOnSuccessListener {
+                                            showDialog = false
+                                        }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) // Verde
+                        ) {
+                            Text("Sí", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("No, Cancelar.", color = Color.White)
+                        }
+                    }
                 )
             }
         }

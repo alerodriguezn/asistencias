@@ -3,6 +3,7 @@ package com.example.asistencias.ui.components
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -13,7 +14,11 @@ import androidx.compose.ui.unit.dp
 import com.example.asistencias.data.Jornada
 
 @Composable
-fun JornadaCard(jornada: Jornada, onEditClick: () -> Unit = {}) {
+fun JornadaCard(
+    jornada: Jornada,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit
+) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -23,10 +28,9 @@ fun JornadaCard(jornada: Jornada, onEditClick: () -> Unit = {}) {
         elevation = CardDefaults.cardElevation(4.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-
             Row(
-                modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(jornada.nombre, style = MaterialTheme.typography.titleMedium)
@@ -45,18 +49,18 @@ fun JornadaCard(jornada: Jornada, onEditClick: () -> Unit = {}) {
             }
 
             Spacer(Modifier.height(4.dp))
-
             Text("Inicio: ${jornada.fechaInicio}")
             Text("Fin: ${jornada.fechaFin}")
 
-            // Ícono de editar (siempre visible)
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Botones: editar y eliminar
+            Row(modifier = Modifier.align(Alignment.End)) {
                 IconButton(onClick = onEditClick) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = "Editar jornada",
-                        tint = Color.Black
-                    )
+                    Icon(Icons.Default.Edit, contentDescription = "Editar")
+                }
+                IconButton(onClick = onDeleteClick) {
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar")
                 }
             }
         }
