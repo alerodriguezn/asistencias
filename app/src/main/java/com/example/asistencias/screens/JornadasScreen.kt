@@ -27,9 +27,11 @@ fun JornadasScreen(
     val TAG = "JornadasScreen"
     val jornadas = remember { mutableStateListOf<Jornada>() }
     var showDialog by remember { mutableStateOf(false) }
+    var showEstadoDialog by remember { mutableStateOf(false) }
     var jornadaSeleccionada by remember { mutableStateOf<Jornada?>(null) }
+    var modoCambioEstado by remember { mutableStateOf("") } // "Activar" o "Finalizar"
 
-    // Escucha los datos en tiempo real
+
     LaunchedEffect(Unit) {
         db.collection("jornadas")
             .addSnapshotListener { snapshot, e ->
@@ -115,12 +117,17 @@ fun JornadasScreen(
                         onDeleteClick = {
                             jornadaSeleccionada = jornada
                             showDialog = true
+                        },
+                        onToggleEstado = {
+                            jornadaSeleccionada = jornada
+                            modoCambioEstado = if (jornada.estado == "Activa") "Finalizar" else "Activar"
+                            showEstadoDialog = true
                         }
                     )
                 }
             }
 
-            // Diálogo de confirmación
+            // Diálogo eliminar
             if (showDialog && jornadaSeleccionada != null) {
                 AlertDialog(
                     onDismissRequest = { showDialog = false },
@@ -143,7 +150,7 @@ fun JornadasScreen(
                                         }
                                 }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50)) // Verde
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
                         ) {
                             Text("Sí", color = Color.White)
                         }
@@ -154,6 +161,42 @@ fun JornadasScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
                             Text("No, Cancelar.", color = Color.White)
+                        }
+                    }
+                )
+            }
+
+            // Diálogo cambio de estado
+            if (showEstadoDialog && jornadaSeleccionada != null) {
+                val nuevoEstado = if (jornadaSeleccionada!!.estado == "Activa") "Finalizada" else "Activa"
+                AlertDialog(
+                    onDismissRequest = { showEstadoDialog = false },
+                    title = { Text("Confirmación") },
+                    text = {
+                        Text("¿Estás seguro que deseas $modoCambioEstado la jornada \"${jornadaSeleccionada!!.nombre}\"?")
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                db.collection("jornadas")
+                                    .document(jornadaSeleccionada!!.id)
+                                    .update("estado", nuevoEstado)
+                                    .addOnSuccessListener {
+                                        showEstadoDialog = false
+                                        jornadaSeleccionada = null
+                                    }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                        ) {
+                            Text("Sí", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showEstadoDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("No", color = Color.White)
                         }
                     }
                 )
