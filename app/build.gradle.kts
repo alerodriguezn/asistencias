@@ -65,4 +65,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    //firebaseauth
+    implementation(libs.firebase.auth)
+    implementation("com.google.firebase:firebase-firestore-ktx:24.11.0")
+
+
 }
