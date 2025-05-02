@@ -15,8 +15,15 @@ object NewAssistanceForm
 
 
 @Serializable
+object JornadasScreen
+
+@Serializable
+object NuevaJornadaForm
+
+@Serializable
 object Register
 
 @Serializable
 object Profile
+
 
