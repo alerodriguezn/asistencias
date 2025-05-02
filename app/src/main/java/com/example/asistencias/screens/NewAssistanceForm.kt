@@ -28,25 +28,39 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.google.firebase.firestore.FirebaseFirestore
+import androidx.lifecycle.viewmodel.compose.viewModel
 import kotlinx.coroutines.launch
+import androidx.compose.runtime.*
+import com.example.asistencias.data.Assistance
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NewAssistanceForm(
+    itemId: String? = null,
+    viewModel: AssistanceViewModel = viewModel(),
+    onSaveSuccess: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val (name, setName) = remember { mutableStateOf("") }
-    val (description, setDescription) = remember { mutableStateOf("") }
+
+    var name by remember { mutableStateOf("") }
+    var requirements by remember { mutableStateOf("") }
+    var benefits by remember { mutableStateOf("") }
+
     val errors = remember { mutableStateOf(mapOf<String, String>()) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val focusManager = LocalFocusManager.current
 
-    val db = FirebaseFirestore.getInstance()
+    LaunchedEffect(itemId) {
+        itemId?.let { id ->
+            viewModel.editingItemId = id
+            viewModel.getAssistanceById(id) { assistance ->
+                name = assistance?.name ?: ""
+                requirements = assistance?.requirements ?: ""
+                benefits = assistance?.benefits ?: ""
+            }
 
-    LaunchedEffect(name, description) {
-        errors.value = emptyMap()
+        }
     }
 
     Scaffold(
@@ -54,7 +68,9 @@ fun NewAssistanceForm(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Nueva Asistencia") }
+                title = { Text(
+                    text = if (itemId == null) "Nueva Asistencia" else "Editar Asistencia"
+                ) }
             )
         }
     ) { paddingValues ->
@@ -67,7 +83,7 @@ fun NewAssistanceForm(
         ) {
             OutlinedTextField(
                 value = name,
-                onValueChange = setName,
+                onValueChange = { name = it },
                 label = { Text("Nombre Asistencia") },
                 modifier = Modifier.fillMaxWidth(),
                 isError = errors.value.containsKey("name"),
@@ -78,53 +94,64 @@ fun NewAssistanceForm(
             Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
-                value = description,
-                onValueChange = setDescription,
-                label = { Text("Descripción") },
+                value = requirements,
+                onValueChange = { requirements = it },
+                label = { Text("Requerimientos") },
                 modifier = Modifier.fillMaxWidth(),
-                isError = errors.value.containsKey("description"),
-                supportingText = { errors.value["description"]?.let { Text(it) } },
+                isError = errors.value.containsKey("requirements"),
+                supportingText = { errors.value["requirements"]?.let { Text(it) } },
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = benefits,
+                onValueChange = { benefits = it },
+                label = { Text("Beneficios") },
+                modifier = Modifier.fillMaxWidth(),
+                isError = errors.value.containsKey("benefits"),
+                supportingText = { errors.value["benefits"]?.let { Text(it) } },
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Next)
             )
 
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = {
-                if (name.isBlank()) {
-                    errors.value += ("name" to "El nombre es obligatorio")
-                } else if (description.isBlank()) {
-                    errors.value += ("description" to "La descripción es obligatoria")
-                } else {
-                    val assistance = hashMapOf(
-                        "name" to name,
-                        "description" to description
-                    )
 
-                    scope.launch {
-                        db.collection("assistances")
-                            .add(assistance)
-                            .addOnSuccessListener {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "Asistencia guardada exitosamente",
-                                        duration = SnackbarDuration.Short
-                                    )
-                                }
-                                setName("")
-                                setDescription("")
-                                focusManager.clearFocus()
-                            }
-                            .addOnFailureListener {
-                                scope.launch {
-                                    snackbarHostState.showSnackbar(
-                                        "Error al guardar la asistencia",
-                                        duration = SnackbarDuration.Short
-                                    )
-                                }
-                            }
-                    }
+                focusManager.clearFocus()
+                errors.value = mapOf()
+
+                if (name.isEmpty()) {
+                    errors.value += ("name" to "El nombre es requerido")
+                }
+                if (requirements.isEmpty()) {
+                    errors.value += ("requirements" to "Los requerimientos son requeridos")
+                }
+                if (benefits.isEmpty()) {
+                    errors.value += ("benefits" to "Los beneficios son requeridos")
                 }
 
+                if (errors.value.isEmpty()) {
+                    val assistance = Assistance(
+                        name = name,
+                        requirements = requirements,
+                        benefits = benefits
+                    )
+                    viewModel.saveAssistance(
+                        assistance,
+                        onSuccess = onSaveSuccess,
+
+                        onError = { exception ->
+                            scope.launch {
+                                snackbarHostState.showSnackbar(
+                                    message = "Error al guardar la asistencia: ${exception.message}",
+                                    duration = SnackbarDuration.Short
+                                )
+                            }
+                        }
+                    )
+                }
             },
                 modifier = Modifier.fillMaxWidth()
                 ) {
