@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.asistencias.data.Jornada
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -22,16 +23,17 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NuevaJornadaForm(navController: NavController) {
+fun EditarJornadaForm(navController: NavController, jornadaOriginal: Jornada) {
     val db = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val snackbarHostState = remember { SnackbarHostState() }
 
-    var nombre by remember { mutableStateOf("") }
-    var anio by remember { mutableStateOf("") }
-    var fechaInicio by remember { mutableStateOf("") }
-    var fechaFin by remember { mutableStateOf("") }
+    // Variables prellenadas con la jornada a editar
+    var nombre by remember { mutableStateOf(jornadaOriginal.nombre) }
+    var anio by remember { mutableStateOf(jornadaOriginal.anio.toString()) }
+    var fechaInicio by remember { mutableStateOf(jornadaOriginal.fechaInicio) }
+    var fechaFin by remember { mutableStateOf(jornadaOriginal.fechaFin) }
 
     val dateFormatter = SimpleDateFormat("d MMMM, yyyy", Locale("es", "ES"))
 
@@ -58,7 +60,7 @@ fun NuevaJornadaForm(navController: NavController) {
                 contentAlignment = Alignment.Center
             ) {
                 OutlinedTextField(
-                    value = "Agregar Nueva Jornada",
+                    value = "Modificar Jornada",
                     onValueChange = {},
                     enabled = false,
                     textStyle = MaterialTheme.typography.titleMedium.copy(
@@ -115,7 +117,6 @@ fun NuevaJornadaForm(navController: NavController) {
 
             customField(nombre, "Nombre de la Jornada", { nombre = it })
             customField(anio, "Año", { anio = it })
-
             customField(fechaInicio, "Fecha de Apertura", { fechaInicio = it }, readOnly = true) {
                 Icon(
                     imageVector = Icons.Filled.DateRange,
@@ -125,7 +126,6 @@ fun NuevaJornadaForm(navController: NavController) {
                     }
                 )
             }
-
             customField(fechaFin, "Fecha de Cierre", { fechaFin = it }, readOnly = true) {
                 Icon(
                     imageVector = Icons.Filled.DateRange,
@@ -143,45 +143,47 @@ fun NuevaJornadaForm(navController: NavController) {
                             snackbarHostState.showSnackbar("Por favor, completá todos los campos.")
                         }
                     } else {
-                        // Calcular semestre
                         val semestre = try {
-                            val formato = SimpleDateFormat("d MMMM, yyyy", Locale("es", "ES"))
-                            val fechaCierreDate = formato.parse(fechaFin)
+                            val cierre = SimpleDateFormat("d MMMM, yyyy", Locale("es", "ES")).parse(fechaFin)
+                            val calCierre = Calendar.getInstance().apply { time = cierre }
 
-                            val calendar = Calendar.getInstance().apply { time = fechaCierreDate }
+                            val calReferencia = Calendar.getInstance().apply {
+                                set(Calendar.MONTH, Calendar.AUGUST)
+                                set(Calendar.DAY_OF_MONTH, 1)
+                            }
 
-                            val mes = calendar.get(Calendar.MONTH) + 1  // Enero = 0
-                            val dia = calendar.get(Calendar.DAY_OF_MONTH)
-
-                            if (mes < 8 || (mes == 8 && dia == 1)) "I" else "II"
+                            if (calCierre.get(Calendar.MONTH) < Calendar.AUGUST ||
+                                (calCierre.get(Calendar.MONTH) == Calendar.AUGUST && calCierre.get(Calendar.DAY_OF_MONTH) < 1)
+                            ) "I" else "II"
                         } catch (e: Exception) {
                             ""
                         }
 
 
-                        val docRef = db.collection("jornadas").document()
-                        val jornada = hashMapOf(
-                            "id" to docRef.id,
+
+                        val datosActualizados = mapOf(
                             "nombre" to nombre,
                             "anio" to anio.toIntOrNull(),
-                            "semestre" to semestre,
                             "fechaInicio" to fechaInicio,
                             "fechaFin" to fechaFin,
-                            "estado" to "Activa"
+                            "estado" to jornadaOriginal.estado,
+                            "semestre" to semestre,
+                            "id" to jornadaOriginal.id
                         )
 
-                        docRef.set(jornada)
+                        db.collection("jornadas").document(jornadaOriginal.id)
+                            .set(datosActualizados)
                             .addOnSuccessListener {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("¡Jornada guardada con éxito!")
+                                    snackbarHostState.showSnackbar("¡Jornada actualizada!")
                                 }
                                 navController.navigate("JornadasScreen") {
-                                    popUpTo("NuevaJornadaForm") { inclusive = true }
+                                    popUpTo("EditarJornadaForm") { inclusive = true }
                                 }
                             }
                             .addOnFailureListener {
                                 scope.launch {
-                                    snackbarHostState.showSnackbar("Error al guardar. Inténtalo de nuevo.")
+                                    snackbarHostState.showSnackbar("Error al actualizar.")
                                 }
                             }
                     }
@@ -190,7 +192,7 @@ fun NuevaJornadaForm(navController: NavController) {
                 shape = RoundedCornerShape(50.dp),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Guardar", color = Color.White)
+                Text("Actualizar", color = Color.White)
             }
         }
     }

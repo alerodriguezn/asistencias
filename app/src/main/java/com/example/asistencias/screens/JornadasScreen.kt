@@ -13,17 +13,25 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.example.asistencias.data.Jornada
 import com.example.asistencias.ui.components.JornadaCard
 import com.google.firebase.firestore.FirebaseFirestore
 
 @Composable
-fun JornadasScreen(navigateToNuevaJornada: () -> Unit) {
+fun JornadasScreen(
+    navController: NavController,
+    navigateToNuevaJornada: () -> Unit
+) {
     val db = FirebaseFirestore.getInstance()
     val TAG = "JornadasScreen"
     val jornadas = remember { mutableStateListOf<Jornada>() }
+    var showDialog by remember { mutableStateOf(false) }
+    var showEstadoDialog by remember { mutableStateOf(false) }
+    var jornadaSeleccionada by remember { mutableStateOf<Jornada?>(null) }
+    var modoCambioEstado by remember { mutableStateOf("") } // "Activar" o "Finalizar"
 
-    // Leer los datos desde Firebase
+
     LaunchedEffect(Unit) {
         db.collection("jornadas")
             .addSnapshotListener { snapshot, e ->
@@ -65,7 +73,6 @@ fun JornadasScreen(navigateToNuevaJornada: () -> Unit) {
                     colors = ButtonDefaults.buttonColors(
                         containerColor = Color(0xFF6A5ACD),
                         contentColor = Color.White
-
                     )
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = Color.White)
@@ -75,34 +82,124 @@ fun JornadasScreen(navigateToNuevaJornada: () -> Unit) {
             }
         }
     ) { padding ->
-        LazyColumn(
-            modifier = Modifier
-                .padding(padding)
-                .padding(horizontal = 16.dp)
-                .fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedTextField(
-                        value = "",
-                        onValueChange = {},
-                        placeholder = { Text("Buscar Jornada") },
-                        modifier = Modifier.weight(1f),
-                        readOnly = true,
-                        enabled = false
+        Column(modifier = Modifier.padding(padding)) {
+            LazyColumn(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .fillMaxSize(),
+                verticalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        OutlinedTextField(
+                            value = "",
+                            onValueChange = {},
+                            placeholder = { Text("Buscar Jornada") },
+                            modifier = Modifier.weight(1f),
+                            readOnly = true,
+                            enabled = false
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
+                }
+
+                items(jornadas) { jornada ->
+                    JornadaCard(
+                        jornada = jornada,
+                        onEditClick = {
+                            navController.navigate("EditarJornadaForm/${jornada.id}")
+                        },
+                        onDeleteClick = {
+                            jornadaSeleccionada = jornada
+                            showDialog = true
+                        },
+                        onToggleEstado = {
+                            jornadaSeleccionada = jornada
+                            modoCambioEstado = if (jornada.estado == "Activa") "Finalizar" else "Activar"
+                            showEstadoDialog = true
+                        }
                     )
-                    Spacer(modifier = Modifier.width(8.dp))
                 }
             }
 
-            items(jornadas) { jornada ->
-                JornadaCard(jornada)
+            // Diálogo eliminar
+            if (showDialog && jornadaSeleccionada != null) {
+                AlertDialog(
+                    onDismissRequest = { showDialog = false },
+                    title = { Text("Confirmación") },
+                    text = {
+                        Column {
+                            Text("¿Estás seguro que deseas eliminar \"${jornadaSeleccionada?.nombre}\"?")
+                            Spacer(modifier = Modifier.height(8.dp))
+                            Text("¡CUIDADO!", color = Color.Red)
+                        }
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                jornadaSeleccionada?.let { jornada ->
+                                    db.collection("jornadas").document(jornada.id)
+                                        .delete()
+                                        .addOnSuccessListener {
+                                            showDialog = false
+                                        }
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                        ) {
+                            Text("Sí", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("No, Cancelar.", color = Color.White)
+                        }
+                    }
+                )
+            }
+
+            // Diálogo cambio de estado
+            if (showEstadoDialog && jornadaSeleccionada != null) {
+                val nuevoEstado = if (jornadaSeleccionada!!.estado == "Activa") "Finalizada" else "Activa"
+                AlertDialog(
+                    onDismissRequest = { showEstadoDialog = false },
+                    title = { Text("Confirmación") },
+                    text = {
+                        Text("¿Estás seguro que deseas $modoCambioEstado la jornada \"${jornadaSeleccionada!!.nombre}\"?")
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                db.collection("jornadas")
+                                    .document(jornadaSeleccionada!!.id)
+                                    .update("estado", nuevoEstado)
+                                    .addOnSuccessListener {
+                                        showEstadoDialog = false
+                                        jornadaSeleccionada = null
+                                    }
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
+                        ) {
+                            Text("Sí", color = Color.White)
+                        }
+                    },
+                    dismissButton = {
+                        Button(
+                            onClick = { showEstadoDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
+                        ) {
+                            Text("No", color = Color.White)
+                        }
+                    }
+                )
             }
         }
     }
