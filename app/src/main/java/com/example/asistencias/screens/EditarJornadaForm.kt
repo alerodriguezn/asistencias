@@ -144,12 +144,22 @@ fun EditarJornadaForm(navController: NavController, jornadaOriginal: Jornada) {
                         }
                     } else {
                         val semestre = try {
-                            val ref = SimpleDateFormat("d MMMM, yyyy", Locale("es", "ES")).parse("1 agosto, 2025")
                             val cierre = SimpleDateFormat("d MMMM, yyyy", Locale("es", "ES")).parse(fechaFin)
-                            if (cierre.before(ref)) "I" else "II"
+                            val calCierre = Calendar.getInstance().apply { time = cierre }
+
+                            val calReferencia = Calendar.getInstance().apply {
+                                set(Calendar.MONTH, Calendar.AUGUST)
+                                set(Calendar.DAY_OF_MONTH, 1)
+                            }
+
+                            if (calCierre.get(Calendar.MONTH) < Calendar.AUGUST ||
+                                (calCierre.get(Calendar.MONTH) == Calendar.AUGUST && calCierre.get(Calendar.DAY_OF_MONTH) < 1)
+                            ) "I" else "II"
                         } catch (e: Exception) {
                             ""
                         }
+
+
 
                         val datosActualizados = mapOf(
                             "nombre" to nombre,
