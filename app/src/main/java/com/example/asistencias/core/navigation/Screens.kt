@@ -1,5 +1,6 @@
 package com.example.asistencias.core.navigation
 
+import com.example.asistencias.screens.AssistanceTypes
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -13,3 +14,4 @@ object AssistanceTypes
 
 @Serializable
 object NewAssistanceForm
+
