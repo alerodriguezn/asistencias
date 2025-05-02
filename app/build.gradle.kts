@@ -57,6 +57,9 @@ dependencies {
     implementation("io.coil-kt.coil3:coil-compose:3.1.0")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.1.0")
     implementation(libs.firebase.firestore)
+    implementation ("com.google.firebase:firebase-firestore-ktx:25.1.3")
+    implementation ("com.google.android.gms:play-services-basement:18.4.0")
+
 
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
@@ -65,4 +68,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    //firebaseauth
+    implementation(libs.firebase.auth)
+    implementation("com.google.firebase:firebase-firestore-ktx:24.11.0")
+
+
 }
