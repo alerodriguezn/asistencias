@@ -47,6 +47,9 @@ fun UserManagementScreen() {
     var searchQuery by remember { mutableStateOf("") }
     var selectedFilter by remember { mutableStateOf("Nombre") }
     val filters = listOf("Nombre", "Cédula", "Correo", "Carnet", "Carrera")
+    var showToggleActiveDialog by remember { mutableStateOf(false) }
+    var userToToggle by remember { mutableStateOf<User?>(null) }
+    var isActiveState by remember { mutableStateOf(false) }
 
     var showEditRoleDialog by remember { mutableStateOf(false) }
     var selectedUser by remember { mutableStateOf<User?>(null) }
@@ -59,8 +62,9 @@ fun UserManagementScreen() {
         users = fetchUsersFromFirestore()
     }
 
+
     // Filtrar usuarios según la búsqueda
-    val filteredUsers = users.filter { user ->
+    val filteredUsers = users.filter { user -> user.activo &&
         when (selectedFilter) {
             "Nombre" -> user.nombre.contains(searchQuery, ignoreCase = true)
             "Cédula" -> user.cedula.contains(searchQuery, ignoreCase = true)
@@ -116,8 +120,9 @@ fun UserManagementScreen() {
                         showEditRoleDialog = true
                     },
                     onToggleActiveClick = {
-                        // Lógica para activar/desactivar usuario
-                        Log.d("UserManagement", "Activar/Desactivar usuario: ${user.nombre}")
+                        userToToggle = user
+                        isActiveState = !user.activo // Cambia el estado activo/inactivo
+                        showToggleActiveDialog = true // Muestra el diálogo
                     }
                 )
                 Spacer(modifier = Modifier.height(8.dp))
@@ -144,6 +149,23 @@ fun UserManagementScreen() {
             }
         )
     }
+    if (showToggleActiveDialog && userToToggle != null) {
+        ConfirmToggleActiveDialog(
+            user = userToToggle!!,
+            isActive = isActiveState,
+            onDismiss = { showToggleActiveDialog = false },
+            onConfirm = {
+                toggleUserActiveState(userToToggle!!.cedula, isActiveState) { success ->
+                    if (success) {
+                        users = users.map {
+                            if (it.cedula == userToToggle!!.cedula) it.copy(activo = isActiveState) else it
+                        }
+                    }
+                }
+            }
+        )
+    }
+
 }
 
 @Composable
@@ -305,6 +327,24 @@ fun updateUserRoleInFirestore(cedula: String, newRole: String, onComplete: (Bool
         .addOnFailureListener { onComplete(false) }
 }
 
+fun toggleUserActiveState(cedula: String, isActive: Boolean, onComplete: (Boolean) -> Unit) {
+    val db = FirebaseFirestore.getInstance()
+    db.collection("usuarios")
+        .whereEqualTo("cedula", cedula)
+        .get()
+        .addOnSuccessListener { snapshot ->
+            if (!snapshot.isEmpty) {
+                val document = snapshot.documents[0]
+                document.reference.update("activo", isActive)
+                    .addOnSuccessListener { onComplete(true) }
+                    .addOnFailureListener { onComplete(false) }
+            } else {
+                onComplete(false)
+            }
+        }
+        .addOnFailureListener { onComplete(false) }
+}
+
 // Data class para representar un usuario
 data class User(
     val nombre: String = "",
@@ -314,7 +354,8 @@ data class User(
     val correo: String = "",
     val carnet: String = "",
     val carrera: String = "",
-    val rol: String = ""
+    val rol: String = "",
+    val activo: Boolean = true
 )
 
 @Preview(showBackground = true)
