@@ -57,9 +57,7 @@ fun AssistanceTypes(onAddNew: () -> Unit, onEditItem: (String) -> Unit) {
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp).padding(
-            top = 4.dp
-        ),
+        modifier = Modifier.fillMaxWidth(),
         content = {
             Column(
                 modifier = Modifier.fillMaxSize()

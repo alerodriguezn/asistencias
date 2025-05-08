@@ -1,9 +1,15 @@
 package com.example.asistencias.core.navigation
-
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.List
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -11,19 +17,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.asistencias.HomeScreen
-import com.example.asistencias.LoginScreen
 import com.example.asistencias.data.Jornada
 import com.example.asistencias.screens.AssistanceTypes
 import com.example.asistencias.screens.EditarJornadaForm
-import com.example.asistencias.screens.JornadasScreen
-import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import androidx.navigation.NavHostController
 import com.example.asistencias.auth.AuthManager
 import com.example.asistencias.auth.LoginScreen
 import com.example.asistencias.auth.PreferencesManager
@@ -34,25 +38,29 @@ import com.example.asistencias.screens.CourseManagementScreen
 import com.example.asistencias.screens.NewAssistanceForm
 import com.example.asistencias.screens.NuevaJornadaForm
 import com.google.firebase.firestore.FirebaseFirestore
+import androidx.compose.material3.Icon
+import com.example.asistencias.screens.UserManagementScreen
+import com.example.asistencias.screens.JornadasScreen
 
 
-
-
-sealed class Routes(val route: String) {
-    data object Login : Routes("Login")
-    data object Register : Routes("Register")
-    data object Profile : Routes("Profile")
-    data object Home : Routes("Home")
-    data object NuevaJornadaForm: Routes("NuevaJornadaForm")
-    
-    data object AssistanceTypes : Routes("AssistanceTypes")
-    data object Courses : Routes("Courses")
-    data object NewAssistanceForm : Routes("NewAssistanceForm") {
+sealed class Routes(val route: String, val title: String, val imageVector: ImageVector? = null) {
+    data object Login : Routes("LoginScreen", "Inicio de Sesión")
+    data object Register : Routes("RegisterScreen",     "Registro")
+    data object UserManagement : Routes("UserManagement", "Gestionar Usuarios", Icons.Default.Person)
+    data object Profile : Routes("ProfileScreen", "Perfil", Icons.Default.AccountCircle)
+    data object Home : Routes("Home", "Inicio", Icons.Default.Home)
+    data object Jornadas : Routes("JornadasScreen", "Jornadas", Icons.Default.List)
+    data object NuevaJornadaForm: Routes("NuevaJornadaForm", "Nueva Jornada")
+    data object AssistanceTypes : Routes("AssistanceTypes", "Tipos de Asistencias",
+        Icons.AutoMirrored.Filled.List
+    )
+    data object Courses : Routes("Courses", "Cursos", Icons.Default.Info)
+    data object NewAssistanceForm : Routes("NewAssistanceForm", "Nueva Asistencia") {
         fun withId(id: String): String {
             return "$route/$id"
         }
     }
-    data object CoursesForm : Routes("CoursesForm") {
+    data object CoursesForm : Routes("CoursesForm", "Editar Curso") {
         fun withId(id: String): String {
             return "$route/$id"
         }
@@ -60,23 +68,23 @@ sealed class Routes(val route: String) {
 }
 
 @Composable
-fun NavigationWrapper() {
+fun NavigationWrapper(navController: NavHostController) {
 
-    val navController = rememberNavController()
+//    val navController = rememberNavController()
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
 
     val startDestination = remember {
         if (AuthManager.isUserLoggedIn() && prefs.getRememberMeState()) {
-            Profile
+            Routes.Profile.route
         } else {
-            Login
+            Routes.Login.route
         }
     }
 
     NavHost(
         navController = navController,
-        startDestination = startDestination = startDestination
+        startDestination = startDestination ,
     ) {
       
       // Pantalla para crear nueva jornada
@@ -113,37 +121,41 @@ fun NavigationWrapper() {
             }
         }
 
+        composable(Routes.UserManagement.route){
+            UserManagementScreen()
+        }
+
         
         composable(Routes.Login.route) {
             LoginScreen(
-                navigateToHome = { navController.navigate(Profile) },
-                navigateToRegister = { navController.navigate(Register) }
+                navigateToHome = { navController.navigate(Routes.Profile.route) },
+                navigateToRegister = { navController.navigate(Routes.Register.route) }
             )
         }
 
         composable(Routes.Register.route){
             RegisterScreen(
-                navigateToLogin = { navController.navigate(Login) }
+                navigateToLogin = { navController.navigate(Routes.Login.route) }
             )
         }
 
         composable(Routes.Profile.route){
             ProfileScreen(
                 onLogout = {
-                    navController.navigate(Login) {
-                        popUpTo(Profile) { inclusive = true }
+                    navController.navigate(Routes.Login.route) {
+                        popUpTo(Routes.Profile.route) { inclusive = true }
                     }
                 }
             )
         }
 
-        composable(Routes.Home.route) {
-            HomeScreen {
-                navController.navigate(Routes.Login.route) {
-                    popUpTo(Routes.Home.route) { inclusive = true }
-                }
-            }
-        }
+//        composable(Routes.Home.route) {
+//            HomeScreen {
+//                navController.navigate(Routes.Login.route) {
+//                    popUpTo(Routes.Home.route) { inclusive = true }
+//                }
+//            }
+//        }
 
         composable(Routes.Courses.route){
             CourseManagementScreen(
@@ -222,6 +234,18 @@ fun NavigationWrapper() {
                 itemId = itemId,
                 onSaveSuccess = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        // Add Jornadas screen
+        composable(Routes.Jornadas.route) {
+            JornadasScreen(
+                navController = navController,
+                navigateToNuevaJornada = {
+                    navController.navigate(
+                        Routes.NuevaJornadaForm.route
+                    )
                 }
             )
         }
