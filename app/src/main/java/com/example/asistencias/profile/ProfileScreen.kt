@@ -36,6 +36,8 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
     var isEditing by remember { mutableStateOf(false) }
     var userData by remember { mutableStateOf<Map<String, String>>(emptyMap()) }
     var loading by remember { mutableStateOf(true) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
 
     var showPasswordDialog by remember { mutableStateOf(false) }
 
@@ -165,18 +167,7 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         }
 
         Button(
-            onClick = {
-                scope.launch {
-                    try {
-                        db.collection("usuarios").document(uid).delete().await()
-                        Firebase.auth.currentUser?.delete()?.await()
-                        prefs.setRememberMeState(false)
-                        onLogout()
-                    } catch (e: Exception) {
-                        println("❌ Error eliminando cuenta: ${e.message}")
-                    }
-                }
-            },
+            onClick = { showConfirmDialog = true },
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(vertical = 8.dp),
@@ -186,6 +177,35 @@ fun ProfileScreen(onLogout: () -> Unit = {}) {
         }
 
         Spacer(modifier = Modifier.height(40.dp))
+    }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Confirmación") },
+            text = { Text("\u00bfEstás seguro de dar de baja la cuenta? Esta acción no se puede deshacer.") },
+            confirmButton = {
+                TextButton(onClick = {
+                    scope.launch {
+                        try {
+                            db.collection("usuarios").document(uid).delete().await()
+                            user.delete().await()
+                            prefs.setRememberMeState(false)
+                            onLogout()
+                        } catch (e: Exception) {
+                            println("\u274c Error eliminando cuenta: ${e.message}")
+                        }
+                    }
+                }) {
+                    Text("Sí", color = Color.Red)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("No, Cancelar")
+                }
+            }
+        )
     }
 }
 @Composable
