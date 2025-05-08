@@ -59,6 +59,8 @@ dependencies {
     implementation(libs.firebase.firestore)
     implementation("androidx.compose.material:material-icons-extended")
     implementation("androidx.compose.foundation:foundation-layout:1.4.3")
+    implementation ("com.google.firebase:firebase-firestore-ktx:25.1.3")
+    implementation ("com.google.android.gms:play-services-basement:18.4.0")
 
 
     testImplementation(libs.junit)
@@ -68,4 +70,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    //firebaseauth
+    implementation(libs.firebase.auth)
+    implementation("com.google.firebase:firebase-firestore-ktx:24.11.0")
+
+
 }

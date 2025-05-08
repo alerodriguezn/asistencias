@@ -31,7 +31,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
-fun AssistanceTypes(navigateToNewAssistance: () -> Unit) {
+fun AssistanceTypes(onAddNew: () -> Unit, onEditItem: (String) -> Unit) {
     val assistantShips = remember { mutableStateListOf<Assistance>() }
     val db = FirebaseFirestore.getInstance()
     val TAG = "AssistanceTypes"
@@ -39,23 +39,25 @@ fun AssistanceTypes(navigateToNewAssistance: () -> Unit) {
 
     LaunchedEffect(Unit) {
         db.collection("assistances")
-            .get()
-            .addOnSuccessListener { result ->
-                assistantShips.clear()
-                for (document in result) {
-                    val assistance = document.toObject(Assistance::class.java)
-                    assistantShips.add(assistance)
+            .addSnapshotListener { snapshots, exception ->
+                if (exception != null) {
+                    Log.e(TAG, "Error listening to changes: ", exception)
+                    return@addSnapshotListener
+                }
+
+                if (snapshots != null) {
+                    assistantShips.clear()
+                    for (document in snapshots) {
+                        val assistance = document.toObject(Assistance::class.java)
+                        assistantShips.add(assistance)
+                    }
                 }
             }
-            .addOnFailureListener { exception ->
-                Log.e(TAG, "Error fetching assistances: ", exception)
-            }
+
     }
 
     Scaffold(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 30.dp).padding(
-            top = 4.dp
-        ),
+        modifier = Modifier.fillMaxWidth(),
         content = {
             Column(
                 modifier = Modifier.fillMaxSize()
@@ -70,7 +72,7 @@ fun AssistanceTypes(navigateToNewAssistance: () -> Unit) {
                         style = MaterialTheme.typography.titleLarge
                     )
                     FilledTonalButton(onClick = {
-                        navigateToNewAssistance()
+                        onAddNew()
                     }) {
                         Icon(
                             imageVector = Icons.Default.Add,
@@ -84,7 +86,7 @@ fun AssistanceTypes(navigateToNewAssistance: () -> Unit) {
                     modifier = Modifier.fillMaxSize().fillMaxWidth()
                 ) {
                     items(assistantShips) { assistantShip ->
-                        AssistantShipListItem(assistantShip)
+                        AssistantShipListItem(assistantShip, onEditItem)
                     }
                 }
             }

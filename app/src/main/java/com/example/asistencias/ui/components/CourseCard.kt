@@ -1,5 +1,6 @@
 package com.example.asistencias.ui.components
 
+
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -22,6 +23,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
@@ -30,14 +32,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.asistencias.data.Assistance
-import com.example.asistencias.screens.AssistanceViewModel
+import com.example.asistencias.data.Course
+import com.example.asistencias.screens.CourseViewModel
+
 
 @Composable
-fun AssistantShipListItem(
-    assistance: Assistance,
+
+fun CourseCard(
+    course: Course,
+    viewModel: CourseViewModel = viewModel(),
     onEditItem: (String) -> Unit,
-    viewModel: AssistanceViewModel = viewModel(),
+    onManageProfessors: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
@@ -49,7 +54,7 @@ fun AssistantShipListItem(
         shape = RectangleShape,
         modifier = Modifier
             .fillMaxWidth()
-            .height(100.dp)
+            .height(90.dp)
     ) {
         Row(
             modifier = Modifier
@@ -57,6 +62,7 @@ fun AssistantShipListItem(
                 .fillMaxSize()
                 .padding(horizontal = 8.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
         ) {
 
             Column(
@@ -64,10 +70,10 @@ fun AssistantShipListItem(
                     .fillMaxSize()
                     .padding(start = 12.dp)
                     .weight(1f),
+                verticalArrangement = Arrangement.Center
             ) {
-                Text(assistance.name.trim(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
-                Text(assistance.requirements.trim(), fontSize = 14.sp, fontStyle = FontStyle.Italic)
-                Text(assistance.benefits.trim(), fontSize = 14.sp, fontStyle = FontStyle.Italic)
+                Text(course.code.trim(), fontSize = 18.sp, fontWeight = FontWeight.Bold)
+                Text(course.name.trim(), fontSize = 14.sp, fontStyle = FontStyle.Italic)
             }
             Box {
                 IconButton(onClick = { menuExpanded = true }) {
@@ -78,10 +84,17 @@ fun AssistantShipListItem(
                     onDismissRequest = { menuExpanded = false }
                 ) {
                     androidx.compose.material3.DropdownMenuItem(
+                        text = { Text("Asociar Profesor") },
+                        onClick = {
+                            menuExpanded = false
+                            onManageProfessors()
+                        }
+                    )
+                    androidx.compose.material3.DropdownMenuItem(
                         text = { Text("Editar") },
                         onClick = {
                             menuExpanded = false
-                            onEditItem(assistance.id)
+                            onEditItem(course.id)
                         }
                     )
                     androidx.compose.material3.DropdownMenuItem(
@@ -101,15 +114,14 @@ fun AssistantShipListItem(
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showDialog = false },
             title = { Text("Confirmar eliminación") },
-            text = { Text("¿Estás seguro de que deseas eliminar esta asistencia?") },
+            text = { Text("¿Estás seguro de que deseas eliminar este curso?") },
             confirmButton = {
                 androidx.compose.material3.TextButton(
                     onClick = {
                         showDialog = false
-                        viewModel.getAssistanceById(assistance.id) { assistanceToDelete ->
-                            if (assistanceToDelete != null) {
-                                viewModel.deleteAssistance(assistanceToDelete.id) {
-                                    // Handle any additional UI updates if needed
+                        viewModel.getCourseById(course.id) { courseToDelete ->
+                            if (courseToDelete != null) {
+                                viewModel.deleteCourse(courseToDelete.id) {
                                 }
                             }
                         }
