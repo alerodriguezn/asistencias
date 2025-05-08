@@ -33,7 +33,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.example.asistencias.data.Course
-import com.example.asistencias.screens.AssistanceViewModel
 import com.example.asistencias.screens.CourseViewModel
 
 
@@ -43,7 +42,7 @@ fun CourseCard(
     course: Course,
     viewModel: CourseViewModel = viewModel(),
     onEditItem: (String) -> Unit,
-
+    onManageProfessors: () -> Unit
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     var showDialog by remember { mutableStateOf(false) }
@@ -88,7 +87,7 @@ fun CourseCard(
                         text = { Text("Asociar Profesor") },
                         onClick = {
                             menuExpanded = false
-//                            onEditItem(assistance.id)
+                            onManageProfessors()
                         }
                     )
                     androidx.compose.material3.DropdownMenuItem(

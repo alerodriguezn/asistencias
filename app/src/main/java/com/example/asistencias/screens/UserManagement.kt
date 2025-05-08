@@ -74,7 +74,7 @@ fun UserManagementScreen() {
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp)//0.dp o eliminarse
     ) {
         // Encabezado con curva
         HeaderWithCurve()
