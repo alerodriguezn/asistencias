@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.List
@@ -49,7 +50,7 @@ sealed class Routes(val route: String, val title: String, val imageVector: Image
     data object UserManagement : Routes("UserManagement", "Gestionar Usuarios", Icons.Default.Person)
     data object Profile : Routes("ProfileScreen", "Perfil", Icons.Default.AccountCircle)
     data object Home : Routes("Home", "Inicio", Icons.Default.Home)
-    data object Jornadas : Routes("JornadasScreen", "Jornadas", Icons.Default.List)
+    data object Jornadas : Routes("JornadasScreen", "Jornadas", Icons.Default.CalendarToday)
     data object NuevaJornadaForm: Routes("NuevaJornadaForm", "Nueva Jornada")
     data object AssistanceTypes : Routes("AssistanceTypes", "Tipos de Asistencias",
         Icons.AutoMirrored.Filled.List
