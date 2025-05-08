@@ -7,6 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,13 +26,40 @@ fun JornadasScreen(
 ) {
     val db = FirebaseFirestore.getInstance()
     val TAG = "JornadasScreen"
-    val jornadas = remember { mutableStateListOf<Jornada>() }
+    val todasJornadas = remember { mutableStateListOf<Jornada>() }
+    val jornadasFiltradas = remember { mutableStateListOf<Jornada>() }
+
     var showDialog by remember { mutableStateOf(false) }
     var showEstadoDialog by remember { mutableStateOf(false) }
     var jornadaSeleccionada by remember { mutableStateOf<Jornada?>(null) }
-    var modoCambioEstado by remember { mutableStateOf("") } // "Activar" o "Finalizar"
+    var modoCambioEstado by remember { mutableStateOf("") }
 
+    var filtroValor by remember { mutableStateOf("") }
+    var expandedFiltro by remember { mutableStateOf(false) }
 
+// Diálogo de selección de semestre/año
+    var mostrarDialogoSemestre by remember { mutableStateOf(false) }
+    var mostrarDialogoAnio by remember { mutableStateOf(false) }
+
+// Años únicos desde Firebase
+    val opcionesAnios = remember { mutableStateListOf<String>() }
+
+    // Función para aplicar el filtro actual
+    fun aplicarFiltro() {
+        jornadasFiltradas.clear()
+        if (filtroValor.isBlank()) {
+            jornadasFiltradas.addAll(todasJornadas)
+        } else {
+            if (filtroValor.startsWith("Semestre")) {
+                val semestre = filtroValor.removePrefix("Semestre ").trim()
+                jornadasFiltradas.addAll(todasJornadas.filter { it.semestre == semestre })
+            } else {
+                jornadasFiltradas.addAll(todasJornadas.filter { it.anio.toString() == filtroValor })
+            }
+        }
+    }
+
+// Escucha en tiempo real de Firestore
     LaunchedEffect(Unit) {
         db.collection("jornadas")
             .addSnapshotListener { snapshot, e ->
@@ -41,17 +69,21 @@ fun JornadasScreen(
                 }
 
                 snapshot?.let {
-                    jornadas.clear()
+                    todasJornadas.clear()
+                    val aniosUnicos = mutableSetOf<Int>()
+
                     for (doc in it.documents) {
-                        try {
-                            val jornada = doc.toObject(Jornada::class.java)
-                            if (jornada != null) {
-                                jornadas.add(jornada)
-                            }
-                        } catch (ex: Exception) {
-                            Log.e(TAG, "Error parseando jornada: ${ex.message}")
+                        val jornada = doc.toObject(Jornada::class.java)
+                        if (jornada != null) {
+                            todasJornadas.add(jornada)
+                            aniosUnicos.add(jornada.anio)
                         }
                     }
+
+                    opcionesAnios.clear()
+                    opcionesAnios.addAll(aniosUnicos.sortedDescending().map { it.toString() })
+
+                    aplicarFiltro()
                 }
             }
     }
@@ -83,32 +115,73 @@ fun JornadasScreen(
         }
     ) { padding ->
         Column(modifier = Modifier.padding(padding)) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = filtroValor,
+                    onValueChange = {},
+                    placeholder = { Text("Buscar Jornada") },
+                    readOnly = true,
+                    enabled = false,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(56.dp),
+                    shape = RoundedCornerShape(50.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        disabledContainerColor = Color(0xFFE0E0E0),
+                        disabledTextColor = Color.Gray,
+                        disabledBorderColor = Color.Transparent
+                    )
+                )
+
+                Spacer(modifier = Modifier.width(8.dp))
+
+                Box {
+                    IconButton(onClick = { expandedFiltro = true }) {
+                        Icon(Icons.Default.Tune, contentDescription = "Filtrar Jornadas")
+                    }
+
+                    DropdownMenu(
+                        expanded = expandedFiltro,
+                        onDismissRequest = { expandedFiltro = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text("Filtrar por Semestre") },
+                            onClick = {
+                                expandedFiltro = false
+                                mostrarDialogoSemestre = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Filtrar por Año") },
+                            onClick = {
+                                expandedFiltro = false
+                                mostrarDialogoAnio = true
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text("Mostrar todas las Jornadas") },
+                            onClick = {
+                                expandedFiltro = false
+                                filtroValor = ""
+                                aplicarFiltro()
+                            }
+                        )
+                    }
+                }
+            }
+            // Lista de jornadas filtradas
             LazyColumn(
                 modifier = Modifier
                     .padding(horizontal = 16.dp)
                     .fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                item {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        OutlinedTextField(
-                            value = "",
-                            onValueChange = {},
-                            placeholder = { Text("Buscar Jornada") },
-                            modifier = Modifier.weight(1f),
-                            readOnly = true,
-                            enabled = false
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
-                }
-
-                items(jornadas) { jornada ->
+                items(jornadasFiltradas) { jornada ->
                     JornadaCard(
                         jornada = jornada,
                         onEditClick = {
@@ -145,9 +218,7 @@ fun JornadasScreen(
                                 jornadaSeleccionada?.let { jornada ->
                                     db.collection("jornadas").document(jornada.id)
                                         .delete()
-                                        .addOnSuccessListener {
-                                            showDialog = false
-                                        }
+                                        .addOnSuccessListener { showDialog = false }
                                 }
                             },
                             colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4CAF50))
@@ -197,6 +268,67 @@ fun JornadasScreen(
                             colors = ButtonDefaults.buttonColors(containerColor = Color.Red)
                         ) {
                             Text("No", color = Color.White)
+                        }
+                    }
+                )
+            }
+
+            // Diálogo para seleccionar semestre
+            if (mostrarDialogoSemestre) {
+                AlertDialog(
+                    onDismissRequest = { mostrarDialogoSemestre = false },
+                    title = { Text("¿Por cuál semestre deseas filtrar la búsqueda?") },
+                    confirmButton = {},
+                    text = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Button(
+                                onClick = {
+                                    filtroValor = "Semestre I"
+                                    aplicarFiltro()
+                                    mostrarDialogoSemestre = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Semestre I")
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Button(
+                                onClick = {
+                                    filtroValor = "Semestre II"
+                                    aplicarFiltro()
+                                    mostrarDialogoSemestre = false
+                                },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text("Semestre II")
+                            }
+                        }
+                    }
+                )
+            }
+
+            // Diálogo para seleccionar año
+            if (mostrarDialogoAnio) {
+                AlertDialog(
+                    onDismissRequest = { mostrarDialogoAnio = false },
+                    title = { Text("¿Por cuál año deseas filtrar la búsqueda?") },
+                    confirmButton = {},
+                    text = {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            opcionesAnios.forEach { anio ->
+                                Button(
+                                    onClick = {
+                                        filtroValor = anio
+                                        aplicarFiltro()
+                                        mostrarDialogoAnio = false
+                                    },
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 4.dp)
+                                ) {
+                                    Text(anio)
+                                }
+                            }
                         }
                     }
                 )
