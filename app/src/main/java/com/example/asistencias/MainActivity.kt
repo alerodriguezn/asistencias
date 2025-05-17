@@ -75,6 +75,7 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NavigationDrawerApp() {
@@ -159,7 +160,10 @@ fun DrawerContent(
                     Row(
                         modifier = Modifier.fillMaxWidth()
                             .clickable {
-                                navController.navigate(route.route)
+                                navController.navigate(route.route) {
+                                    popUpTo(navController.graph.startDestinationId)
+                                    launchSingleTop = true
+                                }
                                 scope.launch { drawerState.close() }
                             }
                         ,

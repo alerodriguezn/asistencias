@@ -40,6 +40,7 @@ import com.example.asistencias.screens.NewAssistanceForm
 import com.example.asistencias.screens.NuevaJornadaForm
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.material3.Icon
+import com.example.asistencias.screens.HomeScreen
 import com.example.asistencias.screens.UserManagementScreen
 import com.example.asistencias.screens.JornadasScreen
 
@@ -77,7 +78,7 @@ fun NavigationWrapper(navController: NavHostController) {
 
     val startDestination = remember {
         if (AuthManager.isUserLoggedIn() && prefs.getRememberMeState()) {
-            Routes.Profile.route
+            Routes.Home.route
         } else {
             Routes.Login.route
         }
@@ -150,13 +151,9 @@ fun NavigationWrapper(navController: NavHostController) {
             )
         }
 
-//        composable(Routes.Home.route) {
-//            HomeScreen {
-//                navController.navigate(Routes.Login.route) {
-//                    popUpTo(Routes.Home.route) { inclusive = true }
-//                }
-//            }
-//        }
+        composable(Routes.Home.route) {
+            HomeScreen ()
+        }
 
         composable(Routes.Courses.route){
             CourseManagementScreen(
