@@ -61,6 +61,7 @@ dependencies {
     implementation("androidx.compose.foundation:foundation-layout:1.4.3")
     implementation ("com.google.firebase:firebase-firestore-ktx:25.1.3")
     implementation ("com.google.android.gms:play-services-basement:18.4.0")
+    implementation(libs.firebase.messaging.ktx)
 
 
     testImplementation(libs.junit)

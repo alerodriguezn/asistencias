@@ -253,12 +253,8 @@ fun NavigationWrapper(navController: NavHostController) {
                 }
             )
         }
-        composable(Routes.NotificationsScreen.route){
-            NotificationsScreen(notifications = listOf(
-                // Aquí puedes agregar notificaciones de ejemplo
-                Notification("Bienvenido", "Has iniciado sesión correctamente", "Hace 5 minutos"),
-                Notification("Nueva Jornada", "Se ha creado una nueva jornada", "Hace 10 minutos")
-            ))
+        composable(Routes.NotificationsScreen.route) {
+            NotificationsScreen()
         }
     }
 }
