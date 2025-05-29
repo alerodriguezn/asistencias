@@ -42,6 +42,8 @@ import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.material3.Icon
 import com.example.asistencias.screens.UserManagementScreen
 import com.example.asistencias.screens.JornadasScreen
+import com.example.asistencias.screens.Notification
+import com.example.asistencias.screens.NotificationsScreen
 
 
 sealed class Routes(val route: String, val title: String, val imageVector: ImageVector? = null) {
@@ -66,6 +68,7 @@ sealed class Routes(val route: String, val title: String, val imageVector: Image
             return "$route/$id"
         }
     }
+    data object NotificationsScreen : Routes("NotificationsScreen", "Notificaciones", Icons.Default.List)
 }
 
 @Composable
@@ -77,7 +80,7 @@ fun NavigationWrapper(navController: NavHostController) {
 
     val startDestination = remember {
         if (AuthManager.isUserLoggedIn() && prefs.getRememberMeState()) {
-            Routes.Profile.route
+            Routes.NotificationsScreen.route
         } else {
             Routes.Login.route
         }
@@ -249,6 +252,13 @@ fun NavigationWrapper(navController: NavHostController) {
                     )
                 }
             )
+        }
+        composable(Routes.NotificationsScreen.route){
+            NotificationsScreen(notifications = listOf(
+                // Aquí puedes agregar notificaciones de ejemplo
+                Notification("Bienvenido", "Has iniciado sesión correctamente", "Hace 5 minutos"),
+                Notification("Nueva Jornada", "Se ha creado una nueva jornada", "Hace 10 minutos")
+            ))
         }
     }
 }
