@@ -9,7 +9,6 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
-import androidx.compose.material.icons.filled.List
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -40,6 +39,9 @@ import com.example.asistencias.screens.NewAssistanceForm
 import com.example.asistencias.screens.NuevaJornadaForm
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.material3.Icon
+import com.example.asistencias.comunicados.ComunicadoForm
+import com.example.asistencias.comunicados.ComunicadosAdminScreen
+import com.example.asistencias.comunicados.ComunicadosInicioScreen
 import com.example.asistencias.screens.UserManagementScreen
 import com.example.asistencias.screens.JornadasScreen
 
@@ -66,6 +68,11 @@ sealed class Routes(val route: String, val title: String, val imageVector: Image
             return "$route/$id"
         }
     }
+    data object ComunicadosAdmin : Routes("ComunicadosAdmin", "Gestión de Comunicados")
+    data object ComunicadosInicio : Routes("ComunicadosInicio", "Comunicados Activos")
+    data object ComunicadoForm : Routes("ComunicadoForm", "Nuevo Comunicado") // 👈 ESTA LÍNEA NUEVA
+
+
 }
 
 @Composable
@@ -250,6 +257,53 @@ fun NavigationWrapper(navController: NavHostController) {
                 }
             )
         }
+
+        // Ruta para pantalla de comunicados (admin)
+        composable(Routes.ComunicadosAdmin.route) {
+            ComunicadosAdminScreen(
+                onCrearNuevo = {
+                    navController.navigate(Routes.ComunicadoForm.route)
+                },
+                onEditar = { comunicadoId ->
+                    navController.navigate("${Routes.ComunicadoForm.route}/$comunicadoId")
+                }
+            )
+        }
+
+
+        // Ruta para pantalla de comunicados activos (usuarios normales)
+        composable(Routes.ComunicadosInicio.route) {
+            ComunicadosInicioScreen()
+        }
+
+// Ruta para editar comunicado
+        composable(
+            route = "${Routes.ComunicadoForm.route}/{comunicadoId}",
+            arguments = listOf(navArgument("comunicadoId") {
+                type = NavType.StringType
+                nullable = true
+                defaultValue = null
+            })
+        ) { backStackEntry ->
+            val comunicadoId = backStackEntry.arguments?.getString("comunicadoId")
+            ComunicadoForm(
+                comunicadoId = comunicadoId,
+                onSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.ComunicadoForm.route) {
+            ComunicadoForm(
+                comunicadoId = null,
+                onSaved = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+
     }
 }
 
