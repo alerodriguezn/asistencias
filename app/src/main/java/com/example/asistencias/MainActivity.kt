@@ -37,6 +37,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,7 @@ import com.example.asistencias.auth.AuthManager
 import com.example.asistencias.auth.PreferencesManager
 import com.example.asistencias.core.navigation.NavigationWrapper
 import com.example.asistencias.core.navigation.Routes
+import com.example.asistencias.notifications.RequestNotificationPermission
 import com.example.asistencias.ui.theme.AsistenciasTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseUser
@@ -70,7 +72,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AsistenciasTheme {
-                NavigationDrawerApp()
+                NavigationDrawerApp(intent.extras)
             }
         }
     }
@@ -78,15 +80,28 @@ class MainActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NavigationDrawerApp() {
+fun NavigationDrawerApp(extras: Bundle? = null) {
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val user = remember { mutableStateOf(Firebase.auth.currentUser) }
 
+    // Solicitar permisos de notificaciones
+    RequestNotificationPermission()
+
     Firebase.auth.addAuthStateListener { auth ->
         user.value = auth.currentUser
+    }
 
+    // Manejar navegación desde notificación
+    LaunchedEffect(extras) {
+        extras?.getString("navigate_to")?.let { route ->
+            navController.navigate(route) {
+                popUpTo(navController.graph.startDestinationId) {
+                    inclusive = true
+                }
+            }
+        }
     }
 
     //create state to check if the user is logged in
@@ -138,7 +153,8 @@ fun DrawerContent(
         val scope = rememberCoroutineScope()
         val correosAdmin = listOf(
             "nesa14@estudiantec.cr",
-            "jos-rodriguez@estudiantec.cr"
+            "jos-rodriguez@estudiantec.cr",
+            "maikelhernandezr4201@estudiantec.cr"
         )
 
         val esAdmin = user.value?.email in correosAdmin
@@ -187,6 +203,7 @@ fun DrawerContent(
                     Routes.AssistanceTypes,
                     Routes.Courses,
                     Routes.Jornadas,
+                    Routes.Notifications,
                     Routes.UserManagement,
                     Routes.Profile,
                 ).forEach { route ->

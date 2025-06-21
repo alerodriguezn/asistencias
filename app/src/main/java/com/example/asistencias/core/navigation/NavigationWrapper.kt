@@ -9,6 +9,7 @@ import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
@@ -37,6 +38,7 @@ import com.example.asistencias.screens.CourseForm
 import com.example.asistencias.screens.CourseManagementScreen
 import com.example.asistencias.screens.NewAssistanceForm
 import com.example.asistencias.screens.NuevaJornadaForm
+import com.example.asistencias.screens.NotificationsScreen
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.material3.Icon
 import com.example.asistencias.comunicados.ComunicadoForm
@@ -58,6 +60,7 @@ sealed class Routes(val route: String, val title: String, val imageVector: Image
         Icons.AutoMirrored.Filled.List
     )
     data object Courses : Routes("Courses", "Cursos", Icons.Default.Info)
+    data object Notifications : Routes("Notifications", "Notificaciones", Icons.Default.Notifications)
     data object NewAssistanceForm : Routes("NewAssistanceForm", "Nueva Asistencia") {
         fun withId(id: String): String {
             return "$route/$id"
@@ -301,6 +304,10 @@ fun NavigationWrapper(navController: NavHostController) {
                     navController.popBackStack()
                 }
             )
+        }
+
+        composable(Routes.Notifications.route) {
+            NotificationsScreen(navController)
         }
 
 

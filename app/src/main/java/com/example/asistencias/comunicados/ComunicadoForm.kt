@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
+import com.example.asistencias.notifications.NotificationManager
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
@@ -24,6 +25,7 @@ fun ComunicadoForm(
     val db = FirebaseFirestore.getInstance()
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val notificationManager = remember { NotificationManager(context) }
 
     var titulo by remember { mutableStateOf(TextFieldValue()) }
     var descripcion by remember { mutableStateOf(TextFieldValue()) }
@@ -144,7 +146,16 @@ fun ComunicadoForm(
                             .addOnSuccessListener { onSaved() }
                     } else {
                         db.collection("comunicados").add(comunicado)
-                            .addOnSuccessListener { onSaved() }
+                            .addOnSuccessListener { 
+                                // Enviar notificación solo cuando se crea un nuevo comunicado
+                                if (estado == "activo") {
+                                    notificationManager.createComunicadoNotification(
+                                        titulo.text,
+                                        descripcion.text
+                                    )
+                                }
+                                onSaved() 
+                            }
                     }
                 }
             },
