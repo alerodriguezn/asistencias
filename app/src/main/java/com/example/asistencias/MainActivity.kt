@@ -137,7 +137,8 @@ fun DrawerContent(
 
         val scope = rememberCoroutineScope()
         val correosAdmin = listOf(
-            "nesa14@estudiantec.cr"
+            "nesa14@estudiantec.cr",
+            "jos-rodriguez@estudiantec.cr"
         )
 
         val esAdmin = user.value?.email in correosAdmin
