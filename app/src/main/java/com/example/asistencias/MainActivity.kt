@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -135,6 +136,12 @@ fun DrawerContent(
         Spacer(modifier = Modifier.height(16.dp))
 
         val scope = rememberCoroutineScope()
+        val correosAdmin = listOf(
+            "nesa14@estudiantec.cr"
+        )
+
+        val esAdmin = user.value?.email in correosAdmin
+
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
             verticalArrangement = Arrangement.SpaceBetween
@@ -147,6 +154,33 @@ fun DrawerContent(
                 )
                 Spacer(modifier = Modifier.height(30.dp))
 
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            if (esAdmin) {
+                                navController.navigate(Routes.ComunicadosAdmin.route)
+                            } else {
+                                navController.navigate(Routes.ComunicadosInicio.route)
+                            }
+                            scope.launch { drawerState.close() }
+                        },
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        tint = Color.Black,
+                        contentDescription = "Comunicados"
+                    )
+                    Text(
+                        text = if (esAdmin) "Gestión de Comunicados" else "Comunicados Activos",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(12.dp)
+                    )
+                }
                 listOf(
                     Routes.Home,
                     Routes.AssistanceTypes,
