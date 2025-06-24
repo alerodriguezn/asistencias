@@ -6,6 +6,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import com.example.asistencias.MainActivity
 import com.example.asistencias.R
@@ -39,12 +40,21 @@ class NotificationService(private val context: Context) {
         }
     }
     
-    fun showComunicadoNotification(titulo: String, descripcion: String) {
-        // Intent para abrir la app en la pantalla de comunicados
+    fun showComunicadoNotification(titulo: String, descripcion: String, notificationId: String? = null) {
+        // No mostrar notificación si el usuario está en la pantalla de notificaciones
+        if (NotificationDisplayControl.isNotificationsScreenActive()) {
+            Log.d("NotificationService", "No mostrando notificación - pantalla de notificaciones activa")
+            return
+        }
+        
+        Log.d("NotificationService", "Mostrando notificación push: $titulo")
+        
+        // Intent para abrir la app en la pantalla de notificaciones
         val intent = Intent(context, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-            putExtra("navigate_to", Routes.ComunicadosInicio.route)
+            putExtra("navigate_to", Routes.Notifications.route)
             putExtra("notification_type", "comunicado")
+            putExtra("notification_id", notificationId)
         }
         
         val pendingIntent = PendingIntent.getActivity(
@@ -68,5 +78,15 @@ class NotificationService(private val context: Context) {
     
     fun cancelNotification() {
         notificationManager.cancel(NOTIFICATION_ID)
+    }
+    
+    // Método para manejar el clic en la notificación push
+    fun handleNotificationClick(notificationId: String?) {
+        if (notificationId != null && notificationId.isNotEmpty()) {
+            // Marcar como leída
+            val notificationManager = NotificationManager(context)
+            notificationManager.markAsReadByUser(notificationId)
+            Log.d("NotificationService", "Notificación marcada como leída desde push: $notificationId")
+        }
     }
 } 

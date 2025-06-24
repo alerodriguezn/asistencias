@@ -1,6 +1,7 @@
 package com.example.asistencias
 
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -59,6 +60,7 @@ import com.example.asistencias.auth.PreferencesManager
 import com.example.asistencias.core.navigation.NavigationWrapper
 import com.example.asistencias.core.navigation.Routes
 import com.example.asistencias.notifications.RequestNotificationPermission
+import com.example.asistencias.notifications.GlobalNotificationListener
 import com.example.asistencias.ui.theme.AsistenciasTheme
 import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseUser
@@ -72,6 +74,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             AsistenciasTheme {
+                GlobalNotificationListener()
                 NavigationDrawerApp(intent.extras)
             }
         }
@@ -85,13 +88,10 @@ fun NavigationDrawerApp(extras: Bundle? = null) {
     val scope = rememberCoroutineScope()
     val navController = rememberNavController()
     val user = remember { mutableStateOf(Firebase.auth.currentUser) }
+    val context = LocalContext.current
 
     // Solicitar permisos de notificaciones
     RequestNotificationPermission()
-
-    Firebase.auth.addAuthStateListener { auth ->
-        user.value = auth.currentUser
-    }
 
     // Manejar navegación desde notificación
     LaunchedEffect(extras) {
@@ -104,7 +104,23 @@ fun NavigationDrawerApp(extras: Bundle? = null) {
         }
     }
 
-    //create state to check if the user is logged in
+    // Manejar notificación marcada como leída desde push
+    LaunchedEffect(extras) {
+        extras?.getString("notification_id")?.let { notificationId ->
+            if (notificationId.isNotEmpty()) {
+                val notificationService = com.example.asistencias.notifications.NotificationService(context)
+                notificationService.handleNotificationClick(notificationId)
+            }
+        }
+    }
+
+    // Escuchar cambios en la autenticación
+    LaunchedEffect(Unit) {
+        Firebase.auth.addAuthStateListener { auth ->
+            user.value = auth.currentUser
+        }
+    }
+
     ModalNavigationDrawer(
         drawerContent = {
             DrawerContent(navController, drawerState, user)

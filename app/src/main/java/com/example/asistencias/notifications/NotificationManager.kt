@@ -14,8 +14,14 @@ class NotificationManager(private val context: Context) {
     private val notificationService = NotificationService(context)
     private val TAG = "NotificationManager"
     
-    fun createComunicadoNotification(titulo: String, descripcion: String) {
+    fun createComunicadoNotification(
+        titulo: String, 
+        descripcion: String, 
+        targetRoles: List<String> = emptyList(),
+        priority: String = "normal"
+    ) {
         try {
+            val currentUid = auth.currentUser?.uid ?: ""
             // Crear notificación en Firestore
             val notification = NotificationItem(
                 id = "",
@@ -23,7 +29,11 @@ class NotificationManager(private val context: Context) {
                 message = descripcion,
                 read = false,
                 timestamp = System.currentTimeMillis(),
-                type = "comunicado"
+                type = "comunicado",
+                creatorUid = currentUid,
+                readBy = emptyList(),
+                targetRoles = targetRoles,
+                priority = priority
             )
             
             // Guardar en Firestore
@@ -31,9 +41,6 @@ class NotificationManager(private val context: Context) {
                 .add(notification)
                 .addOnSuccessListener { documentReference ->
                     Log.d(TAG, "Notificación creada con ID: ${documentReference.id}")
-                    
-                    // Mostrar notificación en la barra de tareas
-                    notificationService.showComunicadoNotification(titulo, descripcion)
                 }
                 .addOnFailureListener { e ->
                     Log.e(TAG, "Error al crear notificación en Firestore", e)
@@ -43,19 +50,152 @@ class NotificationManager(private val context: Context) {
         }
     }
     
-    fun markAsRead(notificationId: String) {
+    // Marcar como leída por el usuario actual
+    fun markAsReadByUser(notificationId: String, userId: String? = null) {
         try {
+            val currentUserId = userId ?: auth.currentUser?.uid
+            if (currentUserId == null) {
+                Log.e(TAG, "Usuario no autenticado, no se puede marcar notificación como leída")
+                return
+            }
+            
             db.collection("notifications")
                 .document(notificationId)
-                .update("read", true)
-                .addOnSuccessListener {
-                    Log.d(TAG, "Notificación marcada como leída: $notificationId")
+                .get()
+                .addOnSuccessListener { document ->
+                    if (document.exists()) {
+                        val notification = document.toObject(NotificationItem::class.java)
+                        notification?.let {
+                            val updatedReadBy = it.readBy.toMutableList()
+                            if (!updatedReadBy.contains(currentUserId)) {
+                                updatedReadBy.add(currentUserId)
+                            }
+                            
+                            // Actualizar tanto readBy como read (para compatibilidad)
+                            val updates = mapOf(
+                                "readBy" to updatedReadBy,
+                                "read" to (updatedReadBy.isNotEmpty())
+                            )
+                            
+                            db.collection("notifications")
+                                .document(notificationId)
+                                .update(updates)
+                                .addOnSuccessListener {
+                                    Log.d(TAG, "Notificación marcada como leída por usuario: $notificationId")
+                                }
+                                .addOnFailureListener { e ->
+                                    Log.e(TAG, "Error al marcar notificación como leída", e)
+                                }
+                        }
+                    }
                 }
                 .addOnFailureListener { e ->
-                    Log.e(TAG, "Error al marcar notificación como leída", e)
+                    Log.e(TAG, "Error obteniendo notificación", e)
                 }
         } catch (e: Exception) {
-            Log.e(TAG, "Error en markAsRead", e)
+            Log.e(TAG, "Error en markAsReadByUser", e)
+        }
+    }
+    
+    // Método legacy para compatibilidad
+    fun markAsRead(notificationId: String) {
+        markAsReadByUser(notificationId)
+    }
+    
+    // Verificar si una notificación ha sido leída por el usuario actual
+    fun isReadByUser(notification: NotificationItem, userId: String? = null): Boolean {
+        val currentUserId = userId ?: auth.currentUser?.uid
+        if (currentUserId == null) {
+            return false
+        }
+        return notification.readBy.contains(currentUserId)
+    }
+    
+    // Obtener notificaciones filtradas por usuario y rol
+    fun getNotificationsForUser(
+        userId: String? = null,
+        userRole: String? = null,
+        onSuccess: (List<NotificationItem>) -> Unit,
+        onError: (Exception) -> Unit
+    ) {
+        try {
+            val currentUserId = userId ?: auth.currentUser?.uid
+            if (currentUserId == null) {
+                onError(Exception("Usuario no autenticado"))
+                return
+            }
+            
+            db.collection("notifications")
+                .orderBy("timestamp", com.google.firebase.firestore.Query.Direction.DESCENDING)
+                .get()
+                .addOnSuccessListener { documents ->
+                    val notifications = mutableListOf<NotificationItem>()
+                    
+                    for (document in documents) {
+                        try {
+                            val notification = document.toObject(NotificationItem::class.java)
+                            notification?.let {
+                                val notificationWithId = if (it.id.isEmpty()) {
+                                    it.copy(id = document.id)
+                                } else {
+                                    it
+                                }
+                                
+                                // Filtrar por rol si se especifica
+                                if (userRole == null || 
+                                    notificationWithId.targetRoles.isEmpty() || 
+                                    notificationWithId.targetRoles.contains(userRole)) {
+                                    notifications.add(notificationWithId)
+                                }
+                            }
+                        } catch (e: Exception) {
+                            Log.e(TAG, "Error parsing notification document: ${document.id}", e)
+                        }
+                    }
+                    
+                    onSuccess(notifications)
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error obteniendo notificaciones", e)
+                    onError(e)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en getNotificationsForUser", e)
+            onError(e)
+        }
+    }
+    
+    // Marcar múltiples notificaciones como leídas
+    fun markMultipleAsRead(notificationIds: List<String>, userId: String? = null) {
+        val currentUserId = userId ?: auth.currentUser?.uid
+        if (currentUserId == null) {
+            Log.e(TAG, "Usuario no autenticado, no se pueden marcar notificaciones como leídas")
+            return
+        }
+        
+        notificationIds.forEach { notificationId ->
+            markAsReadByUser(notificationId, currentUserId)
+        }
+    }
+    
+    // Eliminar notificaciones expiradas
+    fun cleanupExpiredNotifications() {
+        try {
+            val currentTime = System.currentTimeMillis()
+            
+            db.collection("notifications")
+                .whereLessThan("expiresAt", currentTime)
+                .get()
+                .addOnSuccessListener { documents ->
+                    for (document in documents) {
+                        deleteNotification(document.id)
+                    }
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error limpiando notificaciones expiradas", e)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en cleanupExpiredNotifications", e)
         }
     }
     
