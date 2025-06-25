@@ -15,6 +15,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
+import com.example.asistencias.core.navigation.navigateIntelligently
 import com.example.asistencias.data.Jornada
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
@@ -23,7 +25,7 @@ import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun EditarJornadaForm(navController: NavController, jornadaOriginal: Jornada) {
+fun EditarJornadaForm(navController: NavHostController, jornadaOriginal: Jornada) {
     val db = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -177,9 +179,7 @@ fun EditarJornadaForm(navController: NavController, jornadaOriginal: Jornada) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar("¡Jornada actualizada!")
                                 }
-                                navController.navigate("JornadasScreen") {
-                                    popUpTo("EditarJornadaForm") { inclusive = true }
-                                }
+                                navController.navigateIntelligently("JornadasScreen", clearBackStack = true)
                             }
                             .addOnFailureListener {
                                 scope.launch {

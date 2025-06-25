@@ -42,7 +42,7 @@ fun LoginScreen(
         Spacer(modifier = Modifier.height(20.dp))
 
         Image(
-            painter = painterResource(id = R.drawable.logo),
+            painter = painterResource(id = R.drawable.logo2),
             contentDescription = "Logo TEC",
             modifier = Modifier.height(100.dp)
         )

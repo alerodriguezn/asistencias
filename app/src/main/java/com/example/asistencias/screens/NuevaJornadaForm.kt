@@ -15,14 +15,17 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import com.example.asistencias.core.navigation.navigateIntelligently
+import com.example.asistencias.data.Jornada
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun NuevaJornadaForm(navController: NavController) {
+fun NuevaJornadaForm(navController: NavHostController) {
     val db = FirebaseFirestore.getInstance()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -175,9 +178,7 @@ fun NuevaJornadaForm(navController: NavController) {
                                 scope.launch {
                                     snackbarHostState.showSnackbar("¡Jornada guardada con éxito!")
                                 }
-                                navController.navigate("JornadasScreen") {
-                                    popUpTo("NuevaJornadaForm") { inclusive = true }
-                                }
+                                navController.navigateIntelligently("JornadasScreen", clearBackStack = true)
                             }
                             .addOnFailureListener {
                                 scope.launch {

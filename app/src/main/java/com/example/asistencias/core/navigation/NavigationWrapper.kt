@@ -4,9 +4,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.FactCheck
 import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
@@ -46,7 +49,56 @@ import com.example.asistencias.comunicados.ComunicadosAdminScreen
 import com.example.asistencias.comunicados.ComunicadosInicioScreen
 import com.example.asistencias.screens.UserManagementScreen
 import com.example.asistencias.screens.JornadasScreen
+import com.example.asistencias.screens.AssistanceRequestForm
+import com.example.asistencias.screens.AssistanceRequestsScreen
+import com.example.asistencias.screens.AvailableAssistancesScreen
+import com.example.asistencias.screens.StudentApplicationForm
+import com.example.asistencias.screens.StudentApplicationsManagementScreen
+import com.example.asistencias.screens.HomeScreen
+import com.example.asistencias.screens.MyApplicationsScreen
 
+// Función de utilidad para navegación inteligente
+fun NavHostController.navigateIntelligently(route: String, clearBackStack: Boolean = false) {
+    val currentRoute = this.currentBackStackEntry?.destination?.route
+    
+    if (currentRoute == route) {
+        // Si ya estamos en la misma pantalla, no hacer nada
+        return
+    }
+    
+    this.navigate(route) {
+        if (clearBackStack) {
+            // Limpiar la pila hasta la pantalla de inicio
+            popUpTo(Routes.Home.route) {
+                inclusive = false
+            }
+        }
+        // Evitar crear múltiples copias de la misma pantalla
+        launchSingleTop = true
+        // Restaurar el estado si la pantalla ya existe
+        restoreState = true
+    }
+}
+
+// Función para navegación desde formularios (manejo especial del botón atrás)
+fun NavHostController.navigateFromForm(route: String) {
+    this.navigate(route) {
+        // Para formularios, solo limpiar hasta la pantalla anterior
+        // No limpiar toda la pila para mantener el contexto
+        launchSingleTop = true
+        restoreState = true
+    }
+}
+
+// Función para volver atrás de manera inteligente
+fun NavHostController.navigateBackIntelligently() {
+    if (this.previousBackStackEntry != null) {
+        this.popBackStack()
+    } else {
+        // Si no hay pantalla anterior, ir a Home
+        this.navigateIntelligently(Routes.Home.route, clearBackStack = true)
+    }
+}
 
 sealed class Routes(val route: String, val title: String, val imageVector: ImageVector? = null) {
     data object Login : Routes("LoginScreen", "Inicio de Sesión")
@@ -71,11 +123,23 @@ sealed class Routes(val route: String, val title: String, val imageVector: Image
             return "$route/$id"
         }
     }
-    data object ComunicadosAdmin : Routes("ComunicadosAdmin", "Gestión de Comunicados")
-    data object ComunicadosInicio : Routes("ComunicadosInicio", "Comunicados Activos")
-    data object ComunicadoForm : Routes("ComunicadoForm", "Nuevo Comunicado") // 👈 ESTA LÍNEA NUEVA
-
-
+    data object ComunicadosAdmin : Routes("ComunicadosAdmin", "Gestión de Comunicados", Icons.AutoMirrored.Filled.Send)
+    data object ComunicadosInicio : Routes("ComunicadosInicio", "Comunicados Activos", Icons.AutoMirrored.Filled.Send  )
+    data object ComunicadoForm : Routes("ComunicadoForm", "Nuevo Comunicado")
+    data object AssistanceRequests : Routes("AssistanceRequests", "Solicitudes de Asistencia", Icons.AutoMirrored.Filled.FactCheck)
+    data object AssistanceRequestForm : Routes("AssistanceRequestForm", "Nueva Solicitud") {
+        fun withId(id: String): String {
+            return "$route/$id"
+        }
+    }
+    data object AvailableAssistances : Routes("AvailableAssistances", "Asistencias Disponibles", Icons.Default.Info)
+    data object StudentApplicationForm : Routes("StudentApplicationForm", "Aplicar a Asistencia") {
+        fun withId(id: String): String {
+            return "$route/$id"
+        }
+    }
+    data object StudentApplicationsManagement : Routes("StudentApplicationsManagement", "Gestión de Aplicaciones", Icons.Default.Checklist)
+    data object MyApplications : Routes("MyApplications", "Mis Aplicaciones", Icons.Default.Person)
 }
 
 @Composable
@@ -87,7 +151,7 @@ fun NavigationWrapper(navController: NavHostController) {
 
     val startDestination = remember {
         if (AuthManager.isUserLoggedIn() && prefs.getRememberMeState()) {
-            Routes.Profile.route
+            Routes.Home.route
         } else {
             Routes.Login.route
         }
@@ -160,13 +224,9 @@ fun NavigationWrapper(navController: NavHostController) {
             )
         }
 
-//        composable(Routes.Home.route) {
-//            HomeScreen {
-//                navController.navigate(Routes.Login.route) {
-//                    popUpTo(Routes.Home.route) { inclusive = true }
-//                }
-//            }
-//        }
+        composable(Routes.Home.route) {
+            HomeScreen(navController)
+        }
 
         composable(Routes.Courses.route){
             CourseManagementScreen(
@@ -194,7 +254,7 @@ fun NavigationWrapper(navController: NavHostController) {
             CourseForm(
                 courseId = itemId,
                 onSaveSuccess = {
-                    navController.popBackStack()
+                    navController.navigateBackIntelligently()
                 }
             )
         }
@@ -203,7 +263,7 @@ fun NavigationWrapper(navController: NavHostController) {
             CourseForm(
                 courseId = null,
                 onSaveSuccess = {
-                    navController.popBackStack()
+                    navController.navigateBackIntelligently()
                 }
             )
         }
@@ -224,7 +284,7 @@ fun NavigationWrapper(navController: NavHostController) {
             NewAssistanceForm(
                 itemId = null,
                 onSaveSuccess = {
-                    navController.popBackStack()
+                    navController.navigateBackIntelligently()
                 }
             )
         }
@@ -244,7 +304,7 @@ fun NavigationWrapper(navController: NavHostController) {
             NewAssistanceForm(
                 itemId = itemId,
                 onSaveSuccess = {
-                    navController.popBackStack()
+                    navController.navigateBackIntelligently()
                 }
             )
         }
@@ -292,7 +352,7 @@ fun NavigationWrapper(navController: NavHostController) {
             ComunicadoForm(
                 comunicadoId = comunicadoId,
                 onSaved = {
-                    navController.popBackStack()
+                    navController.navigateBackIntelligently()
                 }
             )
         }
@@ -301,7 +361,7 @@ fun NavigationWrapper(navController: NavHostController) {
             ComunicadoForm(
                 comunicadoId = null,
                 onSaved = {
-                    navController.popBackStack()
+                    navController.navigateBackIntelligently()
                 }
             )
         }
@@ -310,6 +370,76 @@ fun NavigationWrapper(navController: NavHostController) {
             NotificationsScreen(navController)
         }
 
+        // Rutas para solicitudes de asistencia
+        composable(Routes.AssistanceRequests.route) {
+            AssistanceRequestsScreen(navController)
+        }
+
+        // Route without parameters
+        composable(Routes.AssistanceRequestForm.route) {
+            AssistanceRequestForm(
+                navController = navController,
+                requestId = null
+            )
+        }
+
+        // Route with parameters
+        composable(
+            route = "${Routes.AssistanceRequestForm.route}/{requestId}",
+            arguments = listOf(
+                navArgument("requestId") {
+                    type = NavType.StringType
+                    nullable = true
+                    defaultValue = null
+                }
+            )
+        ) { backStackEntry ->
+            val requestId = backStackEntry.arguments?.getString("requestId")
+            AssistanceRequestForm(
+                navController = navController,
+                requestId = requestId
+            )
+        }
+
+        // Rutas para aplicaciones de estudiantes
+        composable(Routes.AvailableAssistances.route) {
+            AvailableAssistancesScreen(navController)
+        }
+
+        // Route without parameters
+        composable(Routes.StudentApplicationForm.route) {
+            StudentApplicationForm(
+                navController = navController,
+                assistanceRequestId = ""
+            )
+        }
+
+        // Route with parameters
+        composable(
+            route = "${Routes.StudentApplicationForm.route}/{assistanceRequestId}",
+            arguments = listOf(
+                navArgument("assistanceRequestId") {
+                    type = NavType.StringType
+                    nullable = false
+                }
+            )
+        ) { backStackEntry ->
+            val assistanceRequestId = backStackEntry.arguments?.getString("assistanceRequestId") ?: ""
+            StudentApplicationForm(
+                navController = navController,
+                assistanceRequestId = assistanceRequestId
+            )
+        }
+
+        // Ruta para gestión de aplicaciones (admin)
+        composable(Routes.StudentApplicationsManagement.route) {
+            StudentApplicationsManagementScreen(navController)
+        }
+
+        // Ruta para mis aplicaciones (estudiantes)
+        composable(Routes.MyApplications.route) {
+            MyApplicationsScreen(navController)
+        }
 
     }
 }

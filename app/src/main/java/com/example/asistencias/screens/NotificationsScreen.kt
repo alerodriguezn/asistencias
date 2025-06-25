@@ -52,7 +52,9 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import androidx.navigation.NavHostController
 import com.example.asistencias.core.navigation.Routes
+import com.example.asistencias.core.navigation.navigateIntelligently
 import com.example.asistencias.data.NotificationItem
 import com.example.asistencias.notifications.NotificationDisplayControl
 import com.example.asistencias.notifications.NotificationService
@@ -64,7 +66,7 @@ import java.util.Locale
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun NotificationsScreen(
-    navController: NavController? = null,
+    navController: NavHostController? = null,
     viewModel: NotificationViewModel = viewModel()
 ) {
     val context = LocalContext.current
@@ -206,7 +208,7 @@ fun NotificationsScreen(
                             // Navegar según el tipo de notificación
                             when (notification.type) {
                                 "comunicado" -> {
-                                    navController?.navigate(Routes.ComunicadosInicio.route)
+                                    navController?.navigateIntelligently(Routes.ComunicadosInicio.route)
                                 }
                                 else -> {
                                     // Para otros tipos de notificaciones, quedarse en la pantalla actual

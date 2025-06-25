@@ -60,6 +60,7 @@ import com.example.asistencias.auth.AuthManager
 import com.example.asistencias.auth.PreferencesManager
 import com.example.asistencias.core.navigation.NavigationWrapper
 import com.example.asistencias.core.navigation.Routes
+import com.example.asistencias.core.navigation.navigateIntelligently
 import com.example.asistencias.notifications.RequestNotificationPermission
 import com.example.asistencias.notifications.GlobalNotificationListener
 import com.example.asistencias.ui.theme.AsistenciasTheme
@@ -169,6 +170,20 @@ fun NavigationDrawerApp(extras: Bundle? = null) {
                                         contentDescription = "Menu"
                                     )
                                 }
+                            },
+                            actions = {
+                                if (currentRoute != Routes.Home.route) {
+                                    IconButton(
+                                        onClick = {
+                                            navController.navigateIntelligently(Routes.Home.route, clearBackStack = true)
+                                        }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Home,
+                                            contentDescription = "Ir al inicio"
+                                        )
+                                    }
+                                }
                             }
                         )
                     }
@@ -201,7 +216,6 @@ fun DrawerContent(
         val scope = rememberCoroutineScope()
         val correosAdmin = listOf(
             "nesa14@estudiantec.cr",
-            "maikelhernandezr4201@estudiantec.cr"
         )
 
         val esAdmin = userRole == "Administrador" || user.value?.email in correosAdmin
@@ -218,45 +232,24 @@ fun DrawerContent(
                 )
                 Spacer(modifier = Modifier.height(30.dp))
 
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            if (esAdmin) {
-                                navController.navigate(Routes.ComunicadosAdmin.route)
-                            } else {
-                                navController.navigate(Routes.ComunicadosInicio.route)
-                            }
-                            scope.launch { drawerState.close() }
-                        },
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        tint = Color.Black,
-                        contentDescription = "Comunicados"
-                    )
-                    Text(
-                        text = if (esAdmin) "Gestión de Comunicados" else "Comunicados Activos",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Normal,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(12.dp)
-                    )
-                }
                 // Opciones del Drawer según el rol
                 val adminRoutes = listOf(
                     Routes.Home,
+                    Routes.ComunicadosAdmin,
                     Routes.AssistanceTypes,
+                    Routes.AssistanceRequests,
                     Routes.Courses,
                     Routes.Jornadas,
-                    Routes.Notifications,
+                    Routes.StudentApplicationsManagement,
                     Routes.UserManagement,
+                    Routes.Notifications,
                     Routes.Profile,
                 )
                 val userRoutes = listOf(
                     Routes.Home,
+                    Routes.ComunicadosInicio,
+                    Routes.AvailableAssistances,
+                    Routes.MyApplications,
                     Routes.Notifications,
                     Routes.Profile,
                 )
@@ -265,7 +258,8 @@ fun DrawerContent(
                     Row(
                         modifier = Modifier.fillMaxWidth()
                             .clickable {
-                                navController.navigate(route.route)
+                                // Usar la función de navegación inteligente
+                                navController.navigateIntelligently(route.route, clearBackStack = true)
                                 scope.launch { drawerState.close() }
                             },
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
