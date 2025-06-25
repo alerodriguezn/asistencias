@@ -26,4 +26,7 @@ object Register
 @Serializable
 object Profile
 
+@Serializable
+object Notifications
+
 
