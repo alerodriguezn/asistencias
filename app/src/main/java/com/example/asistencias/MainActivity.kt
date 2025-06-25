@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.example.asistencias.auth.AuthManager
 import com.example.asistencias.auth.PreferencesManager
 import com.example.asistencias.core.navigation.NavigationWrapper
@@ -66,7 +67,12 @@ import com.google.firebase.Firebase
 import com.google.firebase.auth.FirebaseUser
 import com.google.firebase.auth.auth
 import com.google.firebase.auth.ktx.auth
+import com.google.firebase.firestore.firestore
+import com.google.firebase.firestore.ktx.firestore
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.tasks.await
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -90,8 +96,26 @@ fun NavigationDrawerApp(extras: Bundle? = null) {
     val user = remember { mutableStateOf(Firebase.auth.currentUser) }
     val context = LocalContext.current
 
+    // Estado para el rol del usuario
+    var userRole by remember { mutableStateOf<String?>(null) }
+
+    // Obtener la ruta actual
+    val currentBackStackEntry = navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry.value?.destination?.route
+
     // Solicitar permisos de notificaciones
     RequestNotificationPermission()
+
+    // Obtener el rol del usuario desde Firestore
+    LaunchedEffect(user.value) {
+        val uid = user.value?.uid
+        if (uid != null) {
+            val doc = Firebase.firestore.collection("usuarios").document(uid).get().await()
+            userRole = doc.getString("rol")
+        } else {
+            userRole = null
+        }
+    }
 
     // Manejar navegación desde notificación
     LaunchedEffect(extras) {
@@ -121,35 +145,43 @@ fun NavigationDrawerApp(extras: Bundle? = null) {
         }
     }
 
-    ModalNavigationDrawer(
-        drawerContent = {
-            DrawerContent(navController, drawerState, user)
-        },
-        drawerState = drawerState
-    ) {
-        Scaffold(
-            topBar = {
-                if (user.value != null) {
-                    TopAppBar(
-                        title = { Text(text = "Asistencias") },
-                        navigationIcon = {
-                            IconButton(onClick = {
-                                scope.launch { drawerState.open() }
-                            }) {
-                                Icon(
-                                    imageVector = Icons.Default.Menu,
-                                    contentDescription = "Menu"
-                                )
+    // Determinar si se debe mostrar el Drawer y el TopAppBar
+    val showDrawerAndTopBar = currentRoute != "LoginScreen" && currentRoute != "RegisterScreen"
+
+    if (showDrawerAndTopBar) {
+        ModalNavigationDrawer(
+            drawerContent = {
+                DrawerContent(navController, drawerState, user, userRole)
+            },
+            drawerState = drawerState
+        ) {
+            Scaffold(
+                topBar = {
+                    if (user.value != null) {
+                        TopAppBar(
+                            title = { Text(text = "Asistencias") },
+                            navigationIcon = {
+                                IconButton(onClick = {
+                                    scope.launch { drawerState.open() }
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Menu,
+                                        contentDescription = "Menu"
+                                    )
+                                }
                             }
-                        }
-                    )
+                        )
+                    }
+                }
+            ) { paddingValues ->
+                Box(modifier = Modifier.padding(paddingValues)) {
+                    NavigationWrapper(navController)
                 }
             }
-        ) { paddingValues ->
-            Box(modifier = Modifier.padding(paddingValues)) {
-                NavigationWrapper(navController)
-            }
         }
+    } else {
+        // Sin Drawer ni TopAppBar
+        NavigationWrapper(navController)
     }
 }
 
@@ -157,8 +189,8 @@ fun NavigationDrawerApp(extras: Bundle? = null) {
 fun DrawerContent(
     navController: NavHostController,
     drawerState: DrawerState,
-    user :  MutableState<FirebaseUser?>
-
+    user :  MutableState<FirebaseUser?>,
+    userRole: String?
 ) {
     val context = LocalContext.current
     val prefs = remember { PreferencesManager(context) }
@@ -169,11 +201,10 @@ fun DrawerContent(
         val scope = rememberCoroutineScope()
         val correosAdmin = listOf(
             "nesa14@estudiantec.cr",
-            "jos-rodriguez@estudiantec.cr",
             "maikelhernandezr4201@estudiantec.cr"
         )
 
-        val esAdmin = user.value?.email in correosAdmin
+        val esAdmin = userRole == "Administrador" || user.value?.email in correosAdmin
 
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp),
@@ -214,7 +245,8 @@ fun DrawerContent(
                             .padding(12.dp)
                     )
                 }
-                listOf(
+                // Opciones del Drawer según el rol
+                val adminRoutes = listOf(
                     Routes.Home,
                     Routes.AssistanceTypes,
                     Routes.Courses,
@@ -222,17 +254,21 @@ fun DrawerContent(
                     Routes.Notifications,
                     Routes.UserManagement,
                     Routes.Profile,
-                ).forEach { route ->
-
+                )
+                val userRoutes = listOf(
+                    Routes.Home,
+                    Routes.Notifications,
+                    Routes.Profile,
+                )
+                val routesToShow = if (esAdmin) adminRoutes else userRoutes
+                routesToShow.forEach { route ->
                     Row(
                         modifier = Modifier.fillMaxWidth()
                             .clickable {
                                 navController.navigate(route.route)
                                 scope.launch { drawerState.close() }
-                            }
-                        ,
+                            },
                         verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
-
                     ){
                         route.imageVector?.let {
                             Icon(
@@ -247,19 +283,11 @@ fun DrawerContent(
                             fontWeight = FontWeight.Normal,
                             modifier = Modifier
                                 .fillMaxWidth()
-
                                 .padding(12.dp)
                         )
-
                     }
-
                 }
-
-
             }
-
-
-
             if (user.value != null) {
                 Column {
                     Text(
@@ -274,16 +302,13 @@ fun DrawerContent(
                             navController.navigate(Routes.Login.route) {
                                 popUpTo(Routes.Profile.route) { inclusive = true }
                             }
-
                         },
                         modifier = Modifier.fillMaxWidth(),
                         colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFB71C1C))
                     ) {
                         Text("Cerrar sesión", color = Color.White)
                     }
-
                 }
-
             }
         }
     }

@@ -11,7 +11,8 @@ object AuthManager {
     private val dominiosPermitidos = listOf(
         "@itcr.ac.cr",
         "@estudiantec.cr",
-        "@tec.ac.cr"
+        "@tec.ac.cr",
+        "@gmail.com"
     )
 
     private fun isEmailAllowed(email: String): Boolean {
