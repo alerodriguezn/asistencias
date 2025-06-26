@@ -108,7 +108,7 @@ fun HomeScreen(
 
             // Menú de opciones según el rol
             val menuItems = if (currentUser?.rol == "Administrador" || 
-                               auth.currentUser?.email in listOf("nesa14@estudiantec.cr", "maikelhernandezr4201@estudiantec.cr")) {
+                               auth.currentUser?.email in listOf("nesa14@estudiantec.cr")) {
                 // Menú para administradores
                 listOf(
                     HomeMenuItem(

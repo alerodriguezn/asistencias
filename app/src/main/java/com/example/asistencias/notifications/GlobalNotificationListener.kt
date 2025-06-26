@@ -50,11 +50,40 @@ fun GlobalNotificationListener() {
                                     !isNotificationsScreenActive
                                 ) {
                                     Log.d(TAG, "Mostrando notificación push: ${notificationWithId.title}")
-                                    notificationService.showComunicadoNotification(
-                                        notificationWithId.title,
-                                        notificationWithId.message,
-                                        notificationWithId.id
-                                    )
+                                    
+                                    // Mostrar notificación según el tipo
+                                    when (notificationWithId.type) {
+                                        "comunicado" -> {
+                                            notificationService.showComunicadoNotification(
+                                                notificationWithId.title,
+                                                notificationWithId.message,
+                                                notificationWithId.id
+                                            )
+                                        }
+                                        "assistance_request_status" -> {
+                                            notificationService.showAssistanceRequestStatusNotification(
+                                                notificationWithId.title,
+                                                notificationWithId.message,
+                                                notificationWithId.id
+                                            )
+                                        }
+                                        "student_application_status" -> {
+                                            notificationService.showStudentApplicationStatusNotification(
+                                                notificationWithId.title,
+                                                notificationWithId.message,
+                                                notificationWithId.id
+                                            )
+                                        }
+                                        else -> {
+                                            // Notificación genérica
+                                            notificationService.showComunicadoNotification(
+                                                notificationWithId.title,
+                                                notificationWithId.message,
+                                                notificationWithId.id
+                                            )
+                                        }
+                                    }
+                                    
                                     NotificationLocalStore.addShownNotificationId(context, notificationWithId.id)
                                 } else if (isNotificationsScreenActive) {
                                     Log.d(TAG, "No mostrando notificación push - pantalla de notificaciones activa")

@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Reviews
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -23,7 +24,8 @@ import java.util.*
 fun AssistanceRequestCard(
     request: AssistanceRequest,
     onEditClick: () -> Unit,
-    onDeleteClick: () -> Unit
+    onDeleteClick: () -> Unit,
+    onReviewClick: () -> Unit = {}
 ) {
     val dateFormat = SimpleDateFormat("dd/MM/yyyy", Locale.getDefault())
     
@@ -137,6 +139,16 @@ fun AssistanceRequestCard(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.End
             ) {
+                // Botón de revisión solo si está pendiente
+                if (request.status == "Pendiente") {
+                    IconButton(onClick = onReviewClick) {
+                        Icon(
+                            imageVector = Icons.Default.Reviews,
+                            contentDescription = "Revisar",
+                            tint = Color(0xFF2196F3)
+                        )
+                    }
+                }
                 IconButton(onClick = onEditClick) {
                     Icon(
                         imageVector = Icons.Default.Edit,

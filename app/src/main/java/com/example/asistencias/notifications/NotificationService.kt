@@ -76,6 +76,78 @@ class NotificationService(private val context: Context) {
         notificationManager.notify(NOTIFICATION_ID, notification)
     }
     
+    fun showAssistanceRequestStatusNotification(title: String, message: String, notificationId: String? = null) {
+        // No mostrar notificación si el usuario está en la pantalla de notificaciones
+        if (NotificationDisplayControl.isNotificationsScreenActive()) {
+            Log.d("NotificationService", "No mostrando notificación - pantalla de notificaciones activa")
+            return
+        }
+        
+        Log.d("NotificationService", "Mostrando notificación de cambio de estado: $title")
+        
+        // Intent para abrir la app en la pantalla de notificaciones
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", Routes.Notifications.route)
+            putExtra("notification_type", "assistance_request_status")
+            putExtra("notification_id", notificationId)
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1, // Diferente request code para evitar conflictos
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        
+        notificationManager.notify(2, notification) // Diferente notification ID
+    }
+    
+    fun showStudentApplicationStatusNotification(title: String, message: String, notificationId: String? = null) {
+        // No mostrar notificación si el usuario está en la pantalla de notificaciones
+        if (NotificationDisplayControl.isNotificationsScreenActive()) {
+            Log.d("NotificationService", "No mostrando notificación - pantalla de notificaciones activa")
+            return
+        }
+        
+        Log.d("NotificationService", "Mostrando notificación de aplicación de estudiante: $title")
+        
+        // Intent para abrir la app en la pantalla de notificaciones
+        val intent = Intent(context, MainActivity::class.java).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+            putExtra("navigate_to", Routes.Notifications.route)
+            putExtra("notification_type", "student_application_status")
+            putExtra("notification_id", notificationId)
+        }
+        
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            2, // Diferente request code
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        
+        val notification = NotificationCompat.Builder(context, CHANNEL_ID)
+            .setContentTitle(title)
+            .setContentText(message)
+            .setSmallIcon(R.drawable.ic_launcher_foreground)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .build()
+        
+        notificationManager.notify(3, notification) // Diferente notification ID
+    }
+    
     fun cancelNotification() {
         notificationManager.cancel(NOTIFICATION_ID)
     }

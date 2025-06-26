@@ -50,6 +50,108 @@ class NotificationManager(private val context: Context) {
         }
     }
     
+    // Notificación para cambio de estado en solicitudes de asistencia
+    fun createAssistanceRequestStatusNotification(
+        requestId: String,
+        assistanceName: String,
+        status: String,
+        comments: String,
+        studentId: String,
+        studentName: String,
+        reviewerName: String
+    ) {
+        try {
+            val currentUid = auth.currentUser?.uid ?: ""
+            val statusText = when (status) {
+                "Aprobada" -> "aprobada"
+                "Rechazada" -> "rechazada"
+                else -> "actualizada"
+            }
+            
+            val notification = NotificationItem(
+                id = "",
+                title = "Solicitud de Asistencia $statusText",
+                message = "Tu solicitud para '$assistanceName' ha sido $statusText por $reviewerName. ${if (comments.isNotEmpty()) "Comentarios: $comments" else ""}",
+                read = false,
+                timestamp = System.currentTimeMillis(),
+                type = "assistance_request_status",
+                creatorUid = currentUid,
+                readBy = emptyList(),
+                targetRoles = emptyList(),
+                priority = "normal",
+                metadata = mapOf(
+                    "requestId" to requestId,
+                    "studentId" to studentId,
+                    "status" to status,
+                    "assistanceName" to assistanceName
+                )
+            )
+            
+            // Guardar en Firestore
+            db.collection("notifications")
+                .add(notification)
+                .addOnSuccessListener { documentReference ->
+                    Log.d(TAG, "Notificación de cambio de estado creada con ID: ${documentReference.id}")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error al crear notificación de cambio de estado en Firestore", e)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en createAssistanceRequestStatusNotification", e)
+        }
+    }
+    
+    // Notificación para cambio de estado en aplicaciones de estudiantes
+    fun createStudentApplicationStatusNotification(
+        applicationId: String,
+        assistanceName: String,
+        status: String,
+        comments: String,
+        studentId: String,
+        studentName: String,
+        reviewerName: String
+    ) {
+        try {
+            val currentUid = auth.currentUser?.uid ?: ""
+            val statusText = when (status) {
+                "Aprobada" -> "aprobada"
+                "Rechazada" -> "rechazada"
+                else -> "actualizada"
+            }
+            
+            val notification = NotificationItem(
+                id = "",
+                title = "Aplicación de Asistencia $statusText",
+                message = "Tu aplicación para '$assistanceName' ha sido $statusText por $reviewerName. ${if (comments.isNotEmpty()) "Comentarios: $comments" else ""}",
+                read = false,
+                timestamp = System.currentTimeMillis(),
+                type = "student_application_status",
+                creatorUid = currentUid,
+                readBy = emptyList(),
+                targetRoles = emptyList(),
+                priority = "normal",
+                metadata = mapOf(
+                    "applicationId" to applicationId,
+                    "studentId" to studentId,
+                    "status" to status,
+                    "assistanceName" to assistanceName
+                )
+            )
+            
+            // Guardar en Firestore
+            db.collection("notifications")
+                .add(notification)
+                .addOnSuccessListener { documentReference ->
+                    Log.d(TAG, "Notificación de aplicación de estudiante creada con ID: ${documentReference.id}")
+                }
+                .addOnFailureListener { e ->
+                    Log.e(TAG, "Error al crear notificación de aplicación de estudiante en Firestore", e)
+                }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error en createStudentApplicationStatusNotification", e)
+        }
+    }
+    
     // Marcar como leída por el usuario actual
     fun markAsReadByUser(notificationId: String, userId: String? = null) {
         try {

@@ -1,5 +1,7 @@
 package com.example.asistencias.screens
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -17,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.example.asistencias.data.StudentApplication
 import com.example.asistencias.data.AssistanceRequest
+import com.example.asistencias.notifications.NotificationManager
 import com.example.asistencias.ui.components.ApplicationReviewDialog
 import com.example.asistencias.ui.components.StudentApplicationCard
 import com.google.firebase.auth.FirebaseAuth
@@ -214,12 +217,12 @@ fun StudentApplicationsManagementScreen(
                 selectedApplication = null
             },
             onApprove = { comments ->
-                updateApplicationStatus(selectedApplication!!.id, "Aprobada", comments, auth.currentUser?.uid, auth.currentUser?.email)
+                updateApplicationStatus(selectedApplication!!.id, "Aprobada", comments, auth.currentUser?.uid, auth.currentUser?.email, context)
                 showReviewDialog = false
                 selectedApplication = null
             },
             onReject = { comments ->
-                updateApplicationStatus(selectedApplication!!.id, "Rechazada", comments, auth.currentUser?.uid, auth.currentUser?.email)
+                updateApplicationStatus(selectedApplication!!.id, "Rechazada", comments, auth.currentUser?.uid, auth.currentUser?.email, context)
                 showReviewDialog = false
                 selectedApplication = null
             }
@@ -232,24 +235,60 @@ private fun updateApplicationStatus(
     status: String,
     comments: String,
     reviewerId: String?,
-    reviewerEmail: String?
+    reviewerEmail: String?,
+    context: Context
 ) {
     val db = FirebaseFirestore.getInstance()
-    val updateData = hashMapOf<String, Any>(
-        "status" to status,
-        "reviewDate" to Timestamp.now(),
-        "reviewerId" to (reviewerId ?: ""),
-        "reviewerName" to (reviewerEmail ?: "Administrador"),
-        "comments" to comments
-    )
+    val notificationManager = NotificationManager(context)
     
+    // Primero obtener la aplicación para obtener los datos del estudiante
     db.collection("student_applications")
         .document(applicationId)
-        .update(updateData)
-        .addOnSuccessListener {
-            // Aquí podrías enviar una notificación al estudiante
+        .get()
+        .addOnSuccessListener { document ->
+            val application = document.toObject(StudentApplication::class.java)
+            if (application != null) {
+                // Obtener información de la asistencia
+                db.collection("assistance_requests")
+                    .document(application.assistanceRequestId)
+                    .get()
+                    .addOnSuccessListener { assistanceDoc ->
+                        val assistance = assistanceDoc.toObject(AssistanceRequest::class.java)
+                        
+                        val updateData = hashMapOf<String, Any>(
+                            "status" to status,
+                            "reviewDate" to Timestamp.now(),
+                            "reviewerId" to (reviewerId ?: ""),
+                            "reviewerName" to (reviewerEmail ?: "Administrador"),
+                            "comments" to comments
+                        )
+                        
+                        db.collection("student_applications")
+                            .document(applicationId)
+                            .update(updateData)
+                            .addOnSuccessListener {
+                                // Enviar notificación al estudiante
+                                notificationManager.createStudentApplicationStatusNotification(
+                                    applicationId = applicationId,
+                                    assistanceName = assistance?.assistanceTypeName ?: "Asistencia",
+                                    status = status,
+                                    comments = comments,
+                                    studentId = application.studentId,
+                                    studentName = application.studentName,
+                                    reviewerName = reviewerEmail ?: "Administrador"
+                                )
+                            }
+                            .addOnFailureListener { exception ->
+                                // Manejar error
+                                Log.e("StudentApplicationsManagement", "Error actualizando aplicación", exception)
+                            }
+                    }
+                    .addOnFailureListener { exception ->
+                        Log.e("StudentApplicationsManagement", "Error obteniendo asistencia", exception)
+                    }
+            }
         }
         .addOnFailureListener { exception ->
-            // Manejar error
+            Log.e("StudentApplicationsManagement", "Error obteniendo aplicación", exception)
         }
 } 

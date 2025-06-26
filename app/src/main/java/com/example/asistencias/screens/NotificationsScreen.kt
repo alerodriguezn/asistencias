@@ -210,6 +210,14 @@ fun NotificationsScreen(
                                 "comunicado" -> {
                                     navController?.navigateIntelligently(Routes.ComunicadosInicio.route)
                                 }
+                                "assistance_request_status" -> {
+                                    // Navegar a la pantalla de solicitudes de asistencia
+                                    navController?.navigateIntelligently(Routes.AssistanceRequests.route)
+                                }
+                                "student_application_status" -> {
+                                    // Navegar a la pantalla de mis aplicaciones
+                                    navController?.navigateIntelligently(Routes.MyApplications.route)
+                                }
                                 else -> {
                                     // Para otros tipos de notificaciones, quedarse en la pantalla actual
                                     Log.d(TAG, "Notificación de tipo: ${notification.type}")
